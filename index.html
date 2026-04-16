@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotebookLM 설교 프롬프트 툴킷 v5.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
+        .prompt-card { transition: all 0.2s ease-in-out; }
+        .prompt-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .toast { display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 12px 32px; background: #1e293b; color: white; border-radius: 999px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 100; font-weight: 600; }
+        .highlight-text { color: #2563eb; font-weight: 700; border-bottom: 2px solid #bfdbfe; }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+    <div class="max-w-5xl mx-auto">
+        <header class="mb-12 text-center">
+            <div class="inline-block bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-sm font-bold mb-4">v5.1 Smart Generator</div>
+            <h1 class="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">NotebookLM 설교 프롬프트 툴킷</h1>
+            <p class="text-slate-600 text-lg">본문을 입력하면 모든 프롬프트가 자동으로 업데이트됩니다.</p>
+        </header>
+
+        <!-- 본문 입력 섹션 -->
+        <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 mb-10">
+            <label for="passage-input" class="block text-sm font-bold text-slate-700 mb-3">연구할 성경 본문을 입력하세요 (예: 로마서 12:1-2)</label>
+            <div class="flex flex-col md:flex-row gap-4">
+                <input type="text" id="passage-input" placeholder="여기에 본문을 입력하세요..." 
+                       class="flex-1 px-5 py-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none text-lg transition-all"
+                       oninput="updateAllPrompts()">
+                <div class="flex items-center text-sm text-slate-500 bg-slate-100 px-4 rounded-xl">
+                    <span id="status-text">입력 대기 중...</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="prompt-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 프로토콜 카드들이 여기에 삽입됩니다 -->
+        </div>
+
+        <footer class="mt-20 text-center border-t border-slate-200 pt-10">
+            <p class="text-slate-400 text-sm">© 2026 Biblical Interpretation Prompt System v5.1</p>
+        </footer>
+    </div>
+
+    <div id="toast" class="toast">복사 완료! NotebookLM에 붙여넣으세요.</div>
+
+    <script>
+        const originalPrompts = [
+            { id: 0, title: "0. 문체 및 페르소나 학습", text: "먼저 내가 업로드한 과거 설교문들을 분석하여 나의 설교 스타일, 자주 사용하는 수사법, 논리 전개 방식을 요약하십시오. 이후 모든 답변은 이 스타일을 반영할 준비를 하십시오." },
+            { id: 1, title: "1. 전통 및 주석 대조", text: "제공한 자료들을 바탕으로 [해당 본문]에 대한 각 학자의 신학적 전통을 분류하십시오. 특히 PNTC, WBC, ICC 등 주요 주석 간에 해석상 극명한 차이가 드러나는 지점(Crux)을 식별하여 표 형식으로 제시하십시오." },
+            { id: 2, title: "2. 번역 비평 및 사본학", text: "개역개정 성경과 [해당 본문]의 원어(헬라어/히브리어)를 대조하십시오. 개역개정이 본문의 뉘앙스를 충분히 살리지 못했거나 오해의 소지가 있는 번역이 있다면 지적하고, 사본학적 이슈가 해석에 미치는 영향을 설명하십시오." },
+            { id: 3, title: "3. 구조 및 서사 전략", text: "[해당 본문]의 문학적 장르와 구조(교차대칭 등)를 분석하십시오. 이 구조가 독자(청중)의 심리나 강조점에 어떤 영향이 미치도록 설계되었는지 문학적 전략을 설명하십시오." },
+            { id: 4, title: "4. 배경과 가이드라인", text: "[해당 본문]의 당시 사회 문화적 배경을 정리하되, 이 배경이 오늘날 우리가 본문을 '지나치게 자의적으로 해석하는 것'을 어떻게 방어(제한)해주는지 가이드라인을 제시하십시오." },
+            { id: 5, title: "5. 어휘 및 구문 심층 분석", text: "[해당 본문]에서 신학적으로 중요한 핵심 단어들의 원어 의미를 분석하십시오. 특히 일반적인 사전적 의미 외에, 이 본문의 독특한 문맥 안에서만 발견되는 특별한 뉘앙스나 신학적 함의를 추출하십시오." },
+            { id: 6, title: "6. 문맥적 논리 결론", text: "앞뒤 문맥을 고려할 때 [해당 본문]의 논리적 정점이 어디인지 파악하십시오. 이 결론이 주변 구절들과 어떤 유기적 관계를 맺고 있습니까?" },
+            { id: 7, title: "7. 구속사적 해석", text: "구속사적 관점에서 [해당 본문]이 예수 그리스도의 사역과 어떻게 연결됩니까? 단순히 도덕적 교훈으로 흐르지 않도록, 복음이 전제된 해석을 제시하십시오." },
+            { id: 8, title: "8. 교리적 정합성 및 경고", text: "이 해석이 개혁주의 표준문서와 조화를 이루는지 확인하십시오. 특히 [해당 본문]을 해석할 때 빠지기 쉬운 신학적 오류나 이단적 해석의 위험이 있다면 소스를 근거로 경고하십시오." },
+            { id: 9, title: "9. 설교 모델 및 아웃라인", text: "석의 내용을 바탕으로 [팀 켈러/내러티브/강해] 모델을 적용하여 [해당 본문]의 설교 아웃라인을 작성하십시오. 청중인 [대상]의 고민을 관통하는 문제제기를 포함하십시오." },
+            { id: 10, title: "10. 예화 및 시각화", text: "역사적 사실이나 성경 내러티브 중에서 이 메시지를 가장 잘 시각화할 수 있는 예화를 추천하십시오. 갈톤 보드의 평균적 예화가 아닌, 청중의 허를 찌르는 통찰력 있는 사례를 제시하십시오." },
+            { id: 11, title: "11. 메타 비평 (평균 점검)", text: "지금까지 네가 작성한 설교안이 지나치게 보편적이고 무난한(평균적인) 결론에 머물러 있지는 않습니까? 더 깊은 영적 통찰이나 우리 시대에 필요한 예언자적 선포가 빠졌다면 지적하고 수정안을 제시하십시오." },
+            { id: 12, title: "12. 최종 원고 및 질문", text: "모든 수정을 반영하여 [해당 본문] 설교 초안을 작성하십시오. 또한 성도들이 삶에서 이 메시지를 구체적으로 적용할 수 있는 현실 밀착형 나눔 질문 3가지를 만드십시오." }
+        ];
+
+        const passageInput = document.getElementById('passage-input');
+        const grid = document.getElementById('prompt-grid');
+        const statusText = document.getElementById('status-text');
+        const toast = document.getElementById('toast');
+
+        function updateAllPrompts() {
+            const passage = passageInput.value.trim() || "[해당 본문]";
+            statusText.innerText = passage !== "[해당 본문]" ? `'${passage}' 적용 중` : "입력 대기 중...";
+            renderCards(passage);
+        }
+
+        function copyToClipboard(text) {
+            const tempInput = document.createElement("textarea");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
+        function renderCards(passage) {
+            grid.innerHTML = '';
+            originalPrompts.forEach(p => {
+                const updatedText = p.text.replace(/\[해당 본문\]/g, passage);
+                const card = document.createElement('div');
+                card.className = "prompt-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col";
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-sm tracking-tight uppercase text-blue-600">${p.title.split('.')[0]}단계</h3>
+                        <button onclick="copyToClipboard(\`${updatedText}\`)" class="bg-slate-900 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-md">
+                            복사
+                        </button>
+                    </div>
+                    <p class="text-slate-800 font-bold mb-3 leading-snug">${p.title.split('. ')[1] || p.title}</p>
+                    <div class="bg-slate-50 p-4 rounded-xl text-slate-600 text-sm leading-relaxed border border-slate-100 flex-grow">
+                        ${updatedText.replace(new RegExp(passage, 'g'), `<span class="highlight-text">${passage}</span>`)}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 초기 렌더링
+        updateAllPrompts();
+    </script>
+</body>
+</html>
