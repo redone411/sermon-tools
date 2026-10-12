@@ -3,212 +3,1061 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NotebookLM 성경 본문 정밀 석의 툴킷 v6.2</title>
+    <title>성경 본문 석의 툴킷 v7.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
         body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
         .prompt-card { transition: all 0.2s ease-in-out; }
         .prompt-card:hover { transform: translateY(-3px); box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08); }
+        .prompt-card.done { opacity: 0.6; }
         .toast { display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 12px 32px; background: #0f172a; color: white; border-radius: 999px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); z-index: 100; font-weight: 600; }
         .highlight-text { color: #2563eb; font-weight: 700; border-bottom: 2px solid #bfdbfe; }
         .badge-ot { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
         .badge-nt { background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        .seg-flag { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+        .seg-module { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+        .seg-rules { background: #f1f5f9; border: 1px dashed #cbd5e1; color: #475569; }
+        .optional-card { border-style: dashed !important; }
+        .seg-handoff { background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; }
+        .seg-pulpit { background: #fdf4ff; border: 1px solid #f5d0fe; color: #86198f; }
+        .seg-literal { background: #ecfeff; border: 1px solid #a5f3fc; color: #155e75; }
+        .seg-check { background: #fefce8; border: 1px solid #fde047; color: #854d0e; }
     </style>
 </head>
 <body class="p-4 md:p-10">
     <div class="max-w-5xl mx-auto">
         <!-- 헤더 -->
         <header class="mb-10 text-center">
-            <div class="inline-block bg-slate-900 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3">v6.2 Refined Flow</div>
-            <h1 class="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">NotebookLM 성경 본문 정밀 석의 툴킷</h1>
-            <p class="text-slate-600 text-base">석의와 교리의 바른 순서를 정립하여 신구약 6단계 정밀 석의 프롬프트를 자동 생성합니다.</p>
+            <div class="inline-block bg-slate-900 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3">v7.6 Text → Form → World → Canon → Christ → Verdict</div>
+            <h1 class="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">성경 본문 석의 툴킷</h1>
+            <p class="text-slate-600 text-base">본문 확정에서 판정·선포까지 정밀 10단계 또는 축약 4단계 석의 프롬프트를 생성합니다.<br class="hidden md:block">장르 모듈과 권별 경고가 해당 단계에 자동으로 덧붙습니다.</p>
         </header>
 
-        <!-- 입력 및 모드 설정 카드 -->
-        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 mb-8">
+        <!-- 입력 및 설정 카드 -->
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 mb-6">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                 <label for="passage-input" class="block text-sm font-bold text-slate-700">연구할 성경 본문 입력</label>
-                <!-- 신구약 전환 토글 -->
                 <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
-                    <button id="mode-auto" onclick="setMode('auto')" class="px-3 py-1.5 rounded-lg bg-white text-blue-600 shadow-sm transition-all">자동 감지</button>
-                    <button id="mode-ot" onclick="setMode('ot')" class="px-3 py-1.5 rounded-lg transition-all">구약 (OT)</button>
-                    <button id="mode-nt" onclick="setMode('nt')" class="px-3 py-1.5 rounded-lg transition-all">신약 (NT)</button>
+                    <button id="mode-auto" onclick="setMode('auto')" class="px-3 py-1.5 rounded-lg">자동 감지</button>
+                    <button id="mode-ot" onclick="setMode('ot')" class="px-3 py-1.5 rounded-lg">구약 (OT)</button>
+                    <button id="mode-nt" onclick="setMode('nt')" class="px-3 py-1.5 rounded-lg">신약 (NT)</button>
                 </div>
             </div>
 
             <div class="flex flex-col md:flex-row gap-4">
-                <input type="text" id="passage-input" placeholder="예: 창세기 1:1-5 또는 로마서 12:1-2" 
+                <input type="text" id="passage-input" placeholder="예: 예레미야 31:31-34, 렘 31:31-34, 로마서 12:1-2"
                        class="flex-1 px-5 py-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none text-lg font-medium transition-all"
-                       oninput="updateAllPrompts()">
-                <div class="flex items-center justify-center min-w-[160px] px-4 py-3 rounded-xl font-bold text-sm" id="testament-badge">
+                       oninput="updateAll()">
+                <div class="flex items-center justify-center min-w-[180px] px-4 py-3 rounded-xl font-bold text-sm text-center" id="testament-badge">
                     <span id="status-text">본문 입력 대기 중</span>
                 </div>
             </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+                <div class="md:col-span-1">
+                    <label for="genre-select" class="block text-xs font-bold text-slate-500 mb-1.5">장르 모듈 (5·6·8단계에 덧붙음)</label>
+                    <select id="genre-select" onchange="updateAll()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 outline-none focus:border-blue-500"></select>
+                    <p id="genre-hint" class="text-xs text-slate-400 mt-1.5"></p>
+                </div>
+                <div class="md:col-span-2 flex flex-col gap-2 justify-center">
+                    <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                        <input type="checkbox" id="rules-toggle" checked onchange="updateAll()" class="w-4 h-4 accent-blue-600">
+                        각 단계 끝에 규칙 상기문 붙이기 <span class="text-slate-400 font-normal">(권장: 긴 대화에서 규칙이 흐려지는 것을 막음)</span>
+                    </label>
+                    <label id="literal-row" class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                        <input type="checkbox" id="literal-toggle" onchange="updateAll()" class="w-4 h-4 accent-blue-600">
+                        4단계에 문법을 반영한 사역 표 넣기 <span class="text-slate-400 font-normal">(짧은 본문에 권장 · 9단계에서 판정에 따라 보정)</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                        <input type="checkbox" id="optional-toggle" checked onchange="updateAll()" class="w-4 h-4 accent-blue-600">
+                        선택 단계(원고 검증) 표시
+                    </label>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        <button id="copyall-btn" onclick="copyAll()" class="bg-slate-900 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-md">시작 지침 + 1–10단계 전체 복사</button>
+                        <button onclick="resetProgress()" class="bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 px-4 py-2 rounded-lg text-xs font-bold transition-all">이 본문의 진행 표시 초기화</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-5 border-t border-slate-100">
+                <p class="text-xs font-bold text-slate-500 mb-2">연구 방식</p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+                        <button id="depth-full" onclick="setDepth('full')" class="px-3 py-1.5 rounded-lg">정밀 10단계</button>
+                        <button id="depth-short" onclick="setDepth('short')" class="px-3 py-1.5 rounded-lg">축약 4단계</button>
+                    </div>
+                    <p id="depth-hint" class="text-xs text-slate-500"></p>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-5 border-t border-slate-100">
+                <p class="text-xs font-bold text-slate-500 mb-3">사용 환경과 답변 방식 (연구 시작 지침에 들어갑니다)</p>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label for="platform-select" class="block text-xs font-bold text-slate-500 mb-1.5">사용 환경</label>
+                        <select id="platform-select" onchange="updateAll()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 outline-none focus:border-blue-500">
+                            <option value="notebooklm" selected>NotebookLM</option>
+                            <option value="claude">Claude 프로젝트</option>
+                            <option value="other">기타 AI</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="level-select" class="block text-xs font-bold text-slate-500 mb-1.5">난이도</label>
+                        <select id="level-select" onchange="updateAll()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 outline-none focus:border-blue-500">
+                            <option value="easy">쉽게</option>
+                            <option value="standard" selected>표준</option>
+                            <option value="expert">전문</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="length-select" class="block text-xs font-bold text-slate-500 mb-1.5">분량</label>
+                        <select id="length-select" onchange="updateAll()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 outline-none focus:border-blue-500">
+                            <option value="brief">간략 (핵심만)</option>
+                            <option value="normal" selected>보통</option>
+                            <option value="detailed">상세 (논거·출처 모두)</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col justify-end gap-2">
+                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                            <input type="checkbox" id="summary-toggle" checked onchange="updateAll()" class="w-4 h-4 accent-blue-600">
+                            핵심 요약 먼저, 자세한 설명은 뒤에
+                        </label>
+                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                            <input type="checkbox" id="pulpit-toggle" checked onchange="updateAll()" class="w-4 h-4 accent-blue-600">
+                            마지막 단계 끝에 '설교자를 위한 한 줄' 붙이기
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-5 border-t border-slate-100">
+                <p class="text-xs font-bold text-slate-500 mb-1">본문 입력 (인용 기준이 됩니다)</p>
+                <p class="text-xs text-slate-400 mb-3">입력한 본문에서만 그대로 인용하게 합니다. 입력하지 않은 구절과 원문을 인용하면 AI가 '확인 필요'를 붙이도록 지시됩니다.</p>
+                <div class="flex flex-wrap items-center gap-3 mb-3">
+                    <label for="delivery-select" class="text-xs font-bold text-slate-500">본문 전달 방식</label>
+                    <select id="delivery-select" onchange="saveDelivery(); updateAll()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 outline-none focus:border-blue-500">
+                        <option value="source" selected>소스 파일로 올리기 (권장)</option>
+                        <option value="split">채팅에 나눠 보내기</option>
+                        <option value="inline">시작 지침에 함께 넣기 (짧은 본문만)</option>
+                    </select>
+                    <select id="chunk-select" onchange="saveDelivery(); updateAll()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 outline-none focus:border-blue-500" title="한 번에 보낼 자료의 최대 글자 수">
+                        <option value="2000">자료당 2,000자</option>
+                        <option value="4000" selected>자료당 4,000자</option>
+                        <option value="8000">자료당 8,000자</option>
+                    </select>
+                    <p id="delivery-hint" class="text-xs text-slate-500 w-full"></p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="text-fields"></div>
+                <p id="text-status" class="text-xs text-slate-400 mt-2"></p>
+            </div>
+
+            <div id="flag-banner" class="hidden mt-5 p-4 rounded-xl seg-flag text-sm leading-relaxed"></div>
         </div>
 
-        <!-- 프롬프트 그리드 (1~6단계) -->
+        <!-- 단계 흐름 안내 -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 mb-8 text-xs text-slate-600 leading-relaxed">
+            <span id="flow-guide"></span>
+            <br><span id="platform-tip" class="text-slate-400"></span>
+        </div>
+
+        <div id="start-card" class="bg-slate-900 text-white p-6 rounded-2xl shadow-sm mb-6"></div>
         <div id="prompt-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
 
+        <div id="audience-panel" class="mt-6 mb-6 p-5 rounded-2xl border-2 border-fuchsia-200 bg-fuchsia-50">
+            <p id="audience-title" class="text-sm font-extrabold text-fuchsia-900 mb-1">10단계 청중 선택</p>
+            <p class="text-xs text-fuchsia-800 mb-3">한 세대를 골라 그 세대에 맞춘 개요와 적용을 받습니다. 여러 세대가 함께 듣는 설교라면 '전 세대'를 고르십시오.</p>
+            <div class="flex flex-wrap gap-2 mb-3" id="audience-buttons"></div>
+            <label for="audience-memo" class="block text-xs font-bold text-fuchsia-900 mb-1.5">청중 메모 (선택 · 교회와 회중의 실제 사정)</label>
+            <textarea id="audience-memo" rows="2" oninput="saveAudience(); refreshPrompts()" placeholder="예: 농촌 교회, 70대 이상이 대부분 / 맞벌이 부부가 많은 신도시 교회 / 청소년부 수련회 저녁 집회"
+                      class="w-full px-4 py-2.5 bg-white border border-fuchsia-200 rounded-xl focus:ring-4 focus:ring-fuchsia-100 outline-none text-sm"></textarea>
+        </div>
+
+        <div id="prompt-grid-2" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+
+        <div id="check-panel" class="mt-8 p-6 rounded-2xl border-2 border-emerald-200 bg-emerald-50">
+            <p class="text-sm font-extrabold text-emerald-900 mb-1">답변 검사 (AI를 쓰지 않고 이 화면에서 대조)</p>
+            <p class="text-xs text-emerald-800 mb-3">AI의 답변을 붙여 넣으면, 위에 입력한 개역개정·원문과 따옴표 속 인용을 대조하고 쪽 범위 표기, 자료 목록에 없는 번호, 깨진 문자를 찾습니다. 문법·논증·등급은 검사하지 않습니다.</p>
+            <div class="flex flex-wrap items-center gap-3 mb-2">
+                <label for="srcmax-input" class="text-xs font-bold text-emerald-900">1단계 자료 수</label>
+                <input type="number" id="srcmax-input" min="0" placeholder="예: 10" oninput="saveSrcMax()" class="w-24 px-3 py-1.5 bg-white border border-emerald-200 rounded-lg text-sm">
+                <span class="text-xs text-emerald-800">1단계 답변을 검사하면 '자료1, 자료2…' 목록에서 자동으로 채웁니다.</span>
+            </div>
+            <textarea id="check-input" rows="6" placeholder="AI 답변을 여기에 붙여 넣으십시오."
+                      class="w-full px-4 py-3 bg-white border border-emerald-200 rounded-xl text-sm"></textarea>
+            <div class="flex gap-2 mt-2">
+                <button onclick="runCheck()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold">검사</button>
+                <button onclick="document.getElementById('check-input').value=''; document.getElementById('check-result').innerHTML='';" class="bg-white border border-emerald-300 text-emerald-800 px-4 py-2 rounded-lg text-xs font-bold">지우기</button>
+            </div>
+            <div id="check-result" class="mt-3 text-sm"></div>
+        </div>
+
         <footer class="mt-16 text-center border-t border-slate-200 pt-8">
-            <p class="text-slate-400 text-xs">© 2026 Reformed Exegesis Protocol v6.2 (Methodologically Ordered)</p>
+            <p class="text-slate-400 text-xs">© 2026 Reformed Exegesis Protocol v7.6 · 답변 검사 · 본문 전달 방식(소스 파일·나눠 보내기) · 정밀 10단계·축약 4단계 · 확인할 곳 · 개역개정·원문 기준 · 청중 선택 · 난제 인계 · 증거 점검 · 장르 모듈 · 권별 경고 · 교차 검증</p>
         </footer>
     </div>
 
-    <div id="toast" class="toast">복사 완료! NotebookLM 채팅창에 붙여넣으세요.</div>
+    <div id="toast" class="toast">복사 완료! 채팅창에 붙여넣으세요.</div>
 
-    <script>
-        // 구약 / 신약 약어 및 책명 DB
-        const otBooks = [
-            "창세기", "창", "출애굽기", "출", "레위기", "레", "민기", "민수기", "민", "신명기", "신", 
-            "여호수아", "수", "사사기", "삿", "룻기", "룻", "사무엘상", "삼상", "사무엘하", "삼하", 
-            "열왕기상", "왕상", "열왕기하", "왕하", "역대상", "역상", "역대하", "역하", "에스라", "스", 
-            "느헤미야", "느", "에스더", "에", "욥기", "욥", "시편", "시", "잠언", "잠", "전도서", "전", 
-            "아가", "아", "이사야", "사", "예레미야", "렘", "예레미야애가", "애", "에스겔", "겔", 
-            "다니엘", "단", "호세아", "호", "요엘", "욜", "아모스", "암", "오바댜", "옵", "요나", "욘", 
-            "미가", "미", "나훔", "나", "하박국", "합", "스바냐", "습", "학개", "학", "스가랴", "슥", "말라기", "말",
-            "gen", "exod", "lev", "num", "deut", "josh", "judg", "ruth", "1sam", "2sam", "1kings", "2kings",
-            "1chron", "2chron", "ezra", "neh", "esth", "job", "ps", "psalms", "prov", "eccl", "song", "isa",
-            "jer", "lam", "ezek", "dan", "hos", "joel", "amos", "obad", "jonah", "mic", "nah", "hab", "zeph", "hag", "zech", "mal"
-        ];
+<script>
+// ───────────────────────── 1. 성경 책 DB ─────────────────────────
+// [id, 구분, 기본장르, 경고목록, 이름들(전체·약어·영문)]
+const BOOKS = [
+  ["gen","OT","narrative",["pent"],["창세기","창","gen","genesis"]],
+  ["exod","OT","narrative",["pent"],["출애굽기","출","exod","exodus","ex"]],
+  ["lev","OT","law",["pent"],["레위기","레","lev","leviticus"]],
+  ["num","OT","narrative",["pent"],["민수기","민","num","numbers"]],
+  ["deut","OT","law",["pent"],["신명기","신","deut","deuteronomy"]],
+  ["josh","OT","narrative",[],["여호수아","수","josh","joshua"]],
+  ["judg","OT","narrative",[],["사사기","삿","judg","judges"]],
+  ["ruth","OT","narrative",[],["룻기","룻","ruth"]],
+  ["1sam","OT","narrative",["sam"],["사무엘상","삼상","1sam","1samuel"]],
+  ["2sam","OT","narrative",["sam"],["사무엘하","삼하","2sam","2samuel"]],
+  ["1kgs","OT","narrative",[],["열왕기상","왕상","1kgs","1kings"]],
+  ["2kgs","OT","narrative",[],["열왕기하","왕하","2kgs","2kings"]],
+  ["1chr","OT","narrative",[],["역대상","대상","역상","1chr","1chron","1chronicles"]],
+  ["2chr","OT","narrative",[],["역대하","대하","역하","2chr","2chron","2chronicles"]],
+  ["ezra","OT","narrative",["ezra"],["에스라","스","ezra"]],
+  ["neh","OT","narrative",[],["느헤미야","느","neh","nehemiah"]],
+  ["esth","OT","narrative",["esth"],["에스더","에","esth","esther"]],
+  ["job","OT","wisdom",[],["욥기","욥","job"]],
+  ["ps","OT","psalms",["ps"],["시편","시","ps","psa","psalm","psalms"]],
+  ["prov","OT","wisdom",[],["잠언","잠","prov","proverbs"]],
+  ["eccl","OT","wisdom",[],["전도서","전","eccl","ecclesiastes"]],
+  ["song","OT","poetry",[],["아가","아","song","songofsongs"]],
+  ["isa","OT","prophecy",[],["이사야","사","isa","isaiah"]],
+  ["jer","OT","prophecy",["jer"],["예레미야","렘","jer","jeremiah"]],
+  ["lam","OT","poetry",[],["예레미야애가","애가","애","lam","lamentations"]],
+  ["ezek","OT","prophecy",[],["에스겔","겔","ezek","ezekiel"]],
+  ["dan","OT","apocalyptic",["dan"],["다니엘","단","dan","daniel"]],
+  ["hos","OT","prophecy",["hos"],["호세아","호","hos","hosea"]],
+  ["joel","OT","prophecy",["joel"],["요엘","욜","joel"]],
+  ["amos","OT","prophecy",[],["아모스","암","amos"]],
+  ["obad","OT","prophecy",[],["오바댜","옵","obad","obadiah"]],
+  ["jonah","OT","narrative",[],["요나","욘","jonah"]],
+  ["mic","OT","prophecy",[],["미가","미","mic","micah"]],
+  ["nah","OT","prophecy",[],["나훔","나","nah","nahum"]],
+  ["hab","OT","prophecy",[],["하박국","합","hab","habakkuk"]],
+  ["zeph","OT","prophecy",[],["스바냐","습","zeph","zephaniah"]],
+  ["hag","OT","prophecy",[],["학개","학","hag","haggai"]],
+  ["zech","OT","prophecy",[],["스가랴","슥","zech","zechariah"]],
+  ["mal","OT","prophecy",["mal"],["말라기","말","mal","malachi"]],
+  ["matt","NT","gospel",["synoptic"],["마태복음","마태","마","matt","matthew","mt"]],
+  ["mark","NT","gospel",["synoptic","mark"],["마가복음","마가","막","mark","mk"]],
+  ["luke","NT","gospel",["synoptic"],["누가복음","누가","눅","luke","lk"]],
+  ["john","NT","gospel",["john"],["요한복음","요","john","jn"]],
+  ["acts","NT","acts",[],["사도행전","행","acts"]],
+  ["rom","NT","epistle",[],["로마서","롬","rom","romans"]],
+  ["1cor","NT","epistle",[],["고린도전서","고전","1cor","1corinthians"]],
+  ["2cor","NT","epistle",[],["고린도후서","고후","2cor","2corinthians"]],
+  ["gal","NT","epistle",[],["갈라디아서","갈","gal","galatians"]],
+  ["eph","NT","epistle",[],["에베소서","엡","eph","ephesians"]],
+  ["phil","NT","epistle",[],["빌립보서","빌","phil","philippians"]],
+  ["col","NT","epistle",[],["골로새서","골","col","colossians"]],
+  ["1thess","NT","epistle",[],["데살로니가전서","살전","1thess","1thessalonians"]],
+  ["2thess","NT","epistle",[],["데살로니가후서","살후","2thess","2thessalonians"]],
+  ["1tim","NT","epistle",[],["디모데전서","딤전","1tim","1timothy"]],
+  ["2tim","NT","epistle",[],["디모데후서","딤후","2tim","2timothy"]],
+  ["titus","NT","epistle",[],["디도서","딛","titus"]],
+  ["philem","NT","epistle",[],["빌레몬서","몬","philem","philemon"]],
+  ["heb","NT","hebrews",["heb"],["히브리서","히","heb","hebrews"]],
+  ["jas","NT","epistle",[],["야고보서","약","jas","james"]],
+  ["1pet","NT","epistle",[],["베드로전서","벧전","1pet","1peter"]],
+  ["2pet","NT","epistle",[],["베드로후서","벧후","2pet","2peter"]],
+  ["1john","NT","epistle",[],["요한일서","요한1서","요일","1john"]],
+  ["2john","NT","epistle",[],["요한이서","요한2서","요이","2john"]],
+  ["3john","NT","epistle",[],["요한삼서","요한3서","요삼","3john"]],
+  ["jude","NT","epistle",["jude"],["유다서","유","jude"]],
+  ["rev","NT","revelation",[],["요한계시록","계시록","계","rev","revelation"]]
+];
 
-        const ntBooks = [
-            "마태복음", "마태", "마", "마가복음", "마가", "막", "누가복음", "누가", "눅", "요한복음", "요한", "요", 
-            "사도행전", "행", "로마서", "롬", "고린도전서", "고전", "고린도후서", "고후", "갈라디아서", "갈", 
-            "에베소서", "엡", "빌립보서", "빌", "골로새서", "골", "데살로니가전서", "살전", "데살로니가후서", "살후", 
-            "디모데전서", "딤전", "디모데후서", "딤후", "디도서", "딛", "빌레몬서", "몬", "히브리서", "히", 
-            "야고보서", "약", "베드로전서", "벧전", "베드로후서", "벧후", "요한1서", "요일", "요한2서", "요이", 
-            "요한3서", "요삼", "유다서", "유", "요한계시록", "계",
-            "matt", "mark", "luke", "john", "acts", "rom", "1cor", "2cor", "gal", "eph", "phil", "col",
-            "1thess", "2thess", "1tim", "2tim", "titus", "philem", "heb", "jas", "1pet", "2pet", "1john", "2john", "3john", "jude", "rev"
-        ];
+// 이름 → 책 (가장 긴 접두어 일치로 판별: '사도행전'이 '사'(이사야)로 오인되지 않도록)
+const NAME_INDEX = [];
+BOOKS.forEach(b => b[4].forEach(n => NAME_INDEX.push({ name: n.toLowerCase(), book: b })));
+NAME_INDEX.sort((a, b) => b.name.length - a.name.length);
 
-        // 1~6단계 석의 프롬프트 (구약용 - 개선판)
-        const otPrompts = [
-            { id: 1, category: "1단계", title: "신학적 비평 지형도 및 해석상 난제(Crux)", text: "제공된 자료를 바탕으로 [해당 본문]에 대한 주요 주석가/학자들의 신학적 학파와 접근법을 분류하고, 본문 해석상 가장 첨예하게 대립하는 핵심 난제(Crux Interpretum)를 논거와 함께 표 형식으로 정리하십시오." },
-            { id: 2, category: "2단계", title: "원어·본문 비평 및 핵심 어휘 연구", text: "개역개정과 마소라 본문(MT)/칠십인역(LXX)을 대조하여 [해당 본문]의 번역상 뉘앙스 손실이나 오해의 소지를 지적하고, 사본학적 이슈(Ketiv/Qere, 주요 이문)를 설명하십시오. 아울러 문맥상 신학적으로 중요한 핵심 단어들의 원어 어근과 독특한 문맥적 함의를 추출하십시오." },
-            { id: 3, category: "3단계", title: "문학적 구조, 문맥적 정점 및 서사 전략", text: "[해당 본문]의 문학적 장르와 교차대칭(Chiasmus), 평행법 등 세밀한 문학 구조를 분석하십시오. 교차대칭의 중심부(Center X)를 포함하여 앞뒤 문맥 속에서 본문의 '논리적/서사적 정점'이 어디인지 밝히고, 이 구조가 전달하는 수사학적 효과를 규명하십시오." },
-            { id: 4, category: "4단계", title: "사회문화적 배경 및 역사적 한계선", text: "[해당 본문] 당시 고대 근동(ANE) 및 이스라엘의 사회문화적·지리적 배경을 규명하여, 현대적 사고방식을 투영하는 시대착오적 해석(Anachronism)을 차단하는 역사적 경계선을 제시하십시오. 아울러 구약 타 본문(오경, 시편 등)과의 정경적 상호텍스트적(Intertextual) 연관성을 고증하십시오." },
-            { id: 5, category: "5단계", title: "구속사적 기독론 성취", text: "[해당 본문]이 단판적 도덕주의나 율법적 교훈으로 환원되지 않도록, 본문에 내포된 그림자/모형(Typology)과 언약적 흐름이 예수 그리스도의 성육신, 십자가 대속, 부활 사역에서 어떻게 성취되는지 복음 중심으로 정밀하게 연결하십시오." },
-            { id: 6, category: "6단계", title: "교리적 정합성 검증 및 석의 주제 도출", text: "이상의 1~5단계 석의 결과를 바탕으로, 본 해석이 개혁주의 표준문서(WCF, 하이델베르크 요리문답 등)의 신학 체계와 조화를 이루는지 최종 점검하고 빠지기 쉬운 신학적/기복적 오류를 지적하십시오. 이를 총괄하여 [해당 본문]의 핵심 석의 명제를 '한 문장'으로 정립하고, 20자 이내의 강단 설교 주제안들을 문장 형태로 5가지 제시하십시오." }
-        ];
+function findBook(input) {
+  const s = input.toLowerCase().replace(/\s+/g, "");
+  if (!s) return null;
+  for (const e of NAME_INDEX) {
+    if (s.startsWith(e.name)) {
+      const rest = s.slice(e.name.length);
+      // 이름 뒤에는 숫자·구두점·끝만 허용 (예: '아모스'를 '아'+'모스'로 자르지 않도록)
+      if (rest === "" || /^[0-9:.,\-–~장절편]/.test(rest)) return e.book;
+    }
+  }
+  return null;
+}
 
-        // 1~6단계 석의 프롬프트 (신약용 - 개선판)
-        const ntPrompts = [
-            { id: 1, category: "1단계", title: "신학적 비평 지형도 및 해석상 난제(Crux)", text: "제공된 자료를 바탕으로 [해당 본문]에 대한 주요 주석가/학자들의 신학적 학파와 비평적 입장을 분류하고, 본문 해석상 가장 첨예하게 대립하는 핵심 난제(Crux Interpretum)를 논거와 함께 표 형식으로 정리하십시오." },
-            { id: 2, category: "2단계", title: "원어·본문 비평 및 핵심 어휘 연구", text: "개역개정과 헬라어 원문(NA28/UBS6)을 대조하여 [해당 본문]의 번역상 뉘앙스 손실이나 오해의 소지를 지적하고, 사본학적 이슈(주요 이문 Textual Variants, 주요 사본 증거)를 설명하십시오. 아울러 문맥상 신학적으로 중요한 핵심 단어의 헬라어 어근, 시제·구문론적 특징, 그리고 독특한 문맥적 함의를 추출하십시오." },
-            { id: 3, category: "3단계", title: "문학적 구조, 문맥적 정점 및 수사학 전략", text: "[해당 본문]의 문학적 장르를 파악하고, 교차대칭(Chiasmus), 연행적 논증, 내러티브 흐름 등 세밀한 구조를 분석하십시오. (교차대칭 시 Center X를, 논증 구조 시 논리적 정점을 명시) 이 구조가 독자의 심리와 신학적 강조점에 미치는 수사학적 효과를 설명하십시오." },
-            { id: 4, category: "4단계", title: "사회문화적 배경 및 역사적 한계선", text: "[해당 본문]에 관한 1세기 그레코-로만(Greco-Roman) 세계 및 제2성전 유대교(Second Temple Judaism)의 사회문화적·정치적 배경을 규명하여, 본문에 현대적 개념을 자의적으로 투영하는 시대착오적 오해를 차단하는 해석학적 가이드라인을 제시하십시오. 아울러 구약(칠십인역 LXX 인용/암시)과의 정경적 상호텍스트적 연관성을 고증하십시오." },
-            { id: 5, category: "5단계", title: "구속사적 기독론 및 복음 중심적 해석", text: "[해당 본문]이 단순한 윤리적 훈계로 전락하지 않도록, 그리스도가 성취하신 구속 사역에 근거한 '구속사적 직설법(Indicative)'과 '윤리적 명령법(Imperative)'의 관계를 명확히 규명하십시오. 또한 '이미와 아직(Already-Not Yet)'의 구속사 흐름 속에서 그리스도를 삶의 동력(Power)으로 정밀하게 조명하십시오." },
-            { id: 6, category: "6단계", title: "교리적 정합성 검증 및 석의 주제 도출", text: "이상의 1~5단계 석의 결과를 바탕으로, 본 해석이 개혁주의 표준문서(WCF, 하이델베르크 요리문답 등)의 정통 교리와 일치하는지 최종 확인하고 신학적 탈선이나 주술적 오용의 위험을 경고하십시오. 이를 총합하여 [해당 본문]의 핵심 석의 명제를 '한 문장'으로 정립하고, 20자 이내의 강단 설교 주제안들을 문장 형태로 5가지 제시하십시오." }
-        ];
+// ───────────────────────── 2. 권별 경고 (1·3단계에 덧붙음) ─────────────────────────
+const FLAGS = {
+  jer: "[예레미야 경고] MT와 LXX는 서로 다른 두 판본입니다. LXX는 약 1/7–1/8 짧고, 열방 신탁의 위치(MT 46–51장, LXX 25:13 이하)와 장 번호(예: MT 30–31장 = LXX 37–38장)가 다릅니다. 장 안에서 절 순서가 다른 곳도 확인하십시오.",
+  ps: "[시편 경고] MT는 표제를 1절로 세는 경우가 많아 개역개정과 절 번호가 다를 수 있습니다. LXX는 시편 번호 체계가 다릅니다(예: MT 9–10편이 LXX 9편).",
+  joel: "[요엘 경고] 장 구분이 다릅니다: 개역 욜 2:28–32 = MT 3:1–5, 개역 욜 3장 = MT 4장.",
+  mal: "[말라기 경고] 장 구분이 다릅니다: 개역 말 4:1–6 = MT 3:19–24.",
+  hos: "[호세아 경고] 장 구분이 다릅니다: 개역 호 1:10–11 = MT 2:1–2, 개역 호 2:1–23 = MT 2:3–25.",
+  dan: "[다니엘 경고] 단 2:4b–7:28은 아람어입니다. LXX(고대 그리스어 역과 테오도티온 역)에는 추가 부분(아사랴의 기도와 세 젊은이의 노래, 수산나, 벨과 용)이 있습니다.",
+  ezra: "[에스라 경고] 스 4:8–6:18과 7:12–26은 아람어입니다.",
+  esth: "[에스더 경고] LXX에는 MT에 없는 추가 부분이 있습니다.",
+  sam: "[사무엘 경고] 사해사본(4QSam)과 LXX에 MT와 다른 중요 이문이 있습니다.",
+  pent: "[오경 경고] 사마리아오경과의 대조를 포함하십시오.",
+  synoptic: "[공관복음 경고] 병행 본문(마태·마가·누가) 대조를 반드시 포함하십시오.",
+  mark: "[마가복음 경고] 16:9–20의 긴 결말은 주요 사본에 없는 본문 비평 쟁점입니다(연구 범위에 포함될 때).",
+  john: "[요한복음 경고] 7:53–8:11은 주요 사본에 없는 본문 비평 쟁점입니다(연구 범위에 포함될 때).",
+  heb: "[히브리서 경고] 구약 인용이 LXX 형태를 따르는 경우가 많습니다. MT와의 차이를 확인하십시오.",
+  jude: "[유다서 경고] 에녹서(1에녹 1:9) 인용과 모세의 시신에 관한 전승을 다루십시오."
+};
 
-        let currentMode = 'auto'; // 'auto', 'ot', 'nt'
+// ───────────────────────── 3. 장르 모듈 (5·6·8단계에 덧붙음) ─────────────────────────
+const GENRES = {
+  narrative: { t:"OT", label:"내러티브 (오경 서사·역사서)",
+    structure:"[내러티브 모듈] 장면 구분, 플롯(발단–갈등–절정–해결), 서술자의 시점과 평가, 대화, 반복과 생략(gap)을 분석하십시오.",
+    background:"[내러티브 모듈] 병행 본문(예: 사무엘·열왕기와 역대기)이 있으면 대조하고 차이의 의도를 밝히십시오.",
+    christ:"[내러티브 모듈] 인물을 도덕적 모범으로 삼는 독법을 경계하고, 서사의 참 주인공이신 하나님이 이루시는 구속사 흐름을 따라가십시오." },
+  law: { t:"OT", label:"율법",
+    structure:"[율법 모듈] 법 형식(절대법·조건법), 조항의 배열 원리, 언약 문맥(서문과 역사적 근거)을 분석하십시오.",
+    background:"[율법 모듈] 고대 근동 법전·조약과 비교하되, 공통점뿐 아니라 차이점을 함께 밝히십시오.",
+    christ:"[율법 모듈] 도덕법·의식법·재판법의 구분(WCF 19장)을 적용하고, 각 규정이 그리스도 안에서 어떻게 성취·폐지·지속되는지 밝히십시오." },
+  psalms: { t:"OT", label:"시편",
+    structure:"[시편 모듈] 양식(탄식, 찬양, 감사, 제왕, 지혜, 시온 등), 표제, 연 구분, 평행법 유형을 분석하십시오.",
+    background:"[시편 모듈] 시편 다섯 권 안에서의 배치와 표제가 주는 역사적 정보를 검토하십시오.",
+    christ:"[시편 모듈] 제왕시·메시야적 독법과 신약의 인용을 다루되, 시편 기자의 1차 기도 맥락을 먼저 존중하십시오." },
+  wisdom: { t:"OT", label:"지혜서 (욥·잠언·전도서)",
+    structure:"[지혜서 모듈] 잠언의 단위 구분, 욥기의 대화 구조, 전도서의 반복 구문 등 장르 고유의 구조를 분석하십시오.",
+    background:"[지혜서 모듈] 고대 근동 지혜 문헌의 병행 자료와, 행위–결과 원리의 한계(욥기, 전도서)를 다루십시오.",
+    christ:"[지혜서 모듈] 언약 언급이 적은 장르이므로, 지혜이신 그리스도(고전 1:24, 30; 골 2:3)와의 연결에서 등급을 엄격히 구분하십시오." },
+  prophecy: { t:"OT", label:"예언서",
+    structure:"[예언서 모듈] 신탁 양식(심판 신탁, 구원 신탁, 소송, 애가, 환상 보고)과 운문·산문의 교차를 분석하십시오.",
+    background:"[예언서 모듈] 선포의 역사적 상황과 편집층 가설을 구분하고, 정경 형태의 본문을 해석의 기준으로 삼으십시오.",
+    christ:"[예언서 모듈] 성취 지평(가까운 역사, 그리스도의 초림, 종말)을 층위별로 나누고, 조건적 예언인지(렘 18:7–10처럼 청중의 반응에 따라 성취가 달라지는 예언인지) 검토하십시오. 이는 언약의 조건성 문제와 다르므로 혼동하지 마십시오." },
+  apocalyptic: { t:"OT", label:"묵시 (다니엘·스가랴 일부)",
+    structure:"[묵시 모듈] 환상과 해석의 구조, 상징 체계를 분석하십시오.",
+    background:"[묵시 모듈] 상징 해독의 원칙과, 왕국·연대 도식에 관한 해석 학파를 비교하십시오.",
+    christ:"[묵시 모듈] 인자, 하나님 나라 등 신약이 직접 받아 쓰는 모티프와 추론적 연결을 구분하십시오." },
+  poetry: { t:"OT", label:"애가·아가",
+    structure:"[애가·아가 모듈] 이합체(알파벳) 구조, 화자 교대, 반복구를 분석하십시오.",
+    background:"[애가·아가 모듈] 고대 근동의 성읍 애가 또는 사랑시와 비교하십시오.",
+    christ:"[애가·아가 모듈] 해석사(알레고리적, 문자적, 모형론적 독법)를 비교하고 연결 등급을 엄격히 적용하십시오." },
+  gospel: { t:"NT", label:"복음서",
+    structure:"[복음서 모듈] 단락 구조와 예수 말씀의 양식(비유, 논쟁, 선언, 이적 기사)을 분석하십시오.",
+    background:"[복음서 모듈] 병행 본문을 대조하여 각 복음서 저자의 편집상 강조를 밝히십시오. 자료설 등은 가설로 표시하십시오.",
+    christ:"[복음서 모듈] 구약 성취 공식과 예수의 자기 계시를 중심으로, 본문이 그리스도의 정체와 사역에 관해 무엇을 드러내는지 밝히십시오." },
+  acts: { t:"NT", label:"사도행전",
+    structure:"[사도행전 모듈] 내러티브와 연설의 배치, 진전 요약문을 분석하십시오.",
+    background:"[사도행전 모듈] 누가복음과의 연속성과 1세기 지리·정치 배경을 다루십시오.",
+    christ:"[사도행전 모듈] 기술(일어난 일)과 규범(따라야 할 일)을 구분하고, 승천하신 그리스도와 성령의 사역을 중심에 두십시오." },
+  epistle: { t:"NT", label:"서신",
+    structure:"[서신 모듈] 서신 양식(서두, 감사, 본론, 권면, 결미)과 논증 구조(전제, 근거, 결론, 접속사)를 분석하십시오.",
+    background:"[서신 모듈] 수신자 상황을 재구성하되, 거울 읽기(mirror-reading)의 한계를 밝히십시오.",
+    christ:"[서신 모듈] 직설법과 명령법의 관계를 본문의 접속사와 논증 흐름으로 입증하십시오." },
+  hebrews: { t:"NT", label:"히브리서",
+    structure:"[히브리서 모듈] 강해와 권면의 교차(설교 형식)와 단락 사이의 연결어를 분석하십시오.",
+    background:"[히브리서 모듈] 인용된 구약의 LXX 형태와 MT의 차이를 다루십시오.",
+    christ:"[히브리서 모듈] 그림자와 실체(모형과 하늘의 실체) 논증을 본문 자체의 논리로 정리하십시오." },
+  revelation: { t:"NT", label:"요한계시록",
+    structure:"[요한계시록 모듈] 묵시·예언·서신의 혼합 구조와 일곱 개씩 묶인 연쇄, 반복 구조를 분석하십시오.",
+    background:"[요한계시록 모듈] 구약 암시를 목록화하고, 해석 학파(과거주의, 역사주의, 미래주의, 이상주의)를 비교하십시오.",
+    christ:"[요한계시록 모듈] 어린양 기독론과 '이미와 아직'의 종말론 안에서 본문을 읽으십시오." }
+};
 
-        function setMode(mode) {
-            currentMode = mode;
-            ['auto', 'ot', 'nt'].forEach(m => {
-                const btn = document.getElementById(`mode-${m}`);
-                if (m === mode) {
-                    btn.className = "px-3 py-1.5 rounded-lg bg-white text-blue-600 shadow-sm transition-all font-bold";
-                } else {
-                    btn.className = "px-3 py-1.5 rounded-lg transition-all text-slate-500 hover:text-slate-800";
-                }
-            });
-            updateAllPrompts();
-        }
+// ───────────────────────── 4. 공통 규칙 ─────────────────────────
+const STAGE_LIST = "1 본문 확정과 자료 점검, 2 해석 지형과 난제, 3 본문 비평, 4 번역 대조와 핵심 어휘, 5 문학 구조, 6 역사·사회문화 배경, 7 정경 상호텍스트, 8 구속사와 기독론, 9 난제 판정과 교리 점검, 10 석의 명제와 설교";
+const START_HEAD = "아래는 [해당 본문] 연구 지침입니다. 이 메시지에는 본문을 분석하지 말고, 지침을 이해했으면 '확인'이라고만 답하십시오.";
+const START_BODY = [
+  "지금부터 [해당 본문]을 다음 10단계로 연구합니다: " + STAGE_LIST + ". 질문에 나오는 단계 번호는 이 목록을 가리킵니다.",
+  "[진행 원칙]",
+  "- 각 단계에서는 그 단계의 질문에만 답하십시오. 다음 단계의 내용, 특히 9단계의 판정과 10단계의 설교 적용을 미리 다루지 마십시오.",
+  "- 앞 단계에서 이미 제시한 표나 목록은 다시 쓰지 말고 'n단계 참조'로 표시하십시오.",
+  "- 앞 단계의 내용이 이후의 점검이나 검증에서 수정되었으면, 수정된 내용을 따르십시오. 점검에서 지적된 표기 방식(예: 첫 쪽 대신 절 주석 위치)은 이후 모든 단계에 계속 적용하십시오.",
+  "- 질문에 든 예시 목록은 점검할 항목의 예일 뿐입니다. 본문에 실제로 해당하는 것만 다루고, 없으면 '해당 없음'이라고 쓰십시오.",
+  "- 답변 끝에 다음 단계 안내나 추가 질문을 권하는 문구를 붙이지 마십시오.",
+  "[공통 규칙]",
+  "① 출처: 자료에서 가져온 내용은 저자와 자료명을 밝히십시오. 쪽은 그 내용이 실린 쪽을 확인한 경우에만 쓰고, 확인할 수 없으면 쪽 대신 '3:16 주석'처럼 해당 절 주석 위치를 쓰십시오. 자료 전체의 쪽 범위나 주석이 시작되는 첫 쪽을 쪽수처럼 쓰지 말고, 인용 번호만 남기지 마십시오. 다른 학자를 거쳐 인용한 것은 '2차 인용'으로 표시하십시오.",
+  "② 확인: 자료로 확인되지 않는 주장은 '확인 필요'로, 제공된 자료에 없는 문헌이나 지식은 '자료 외'로 표시하십시오. 출처, 쪽수, 신앙고백 조항의 내용, 사본 독법, 원어 본문을 기억에 의존해 만들어 내지 마십시오.",
+  "③ 성경과 원문 인용: 따옴표 안의 성경 본문은 제공된 개역개정 본문(이 지침에 붙인 본문 또는 자료로 올린 본문)에서 한 글자도 바꾸지 말고 그대로 옮기십시오. 제공되지 않은 구절은 따옴표로 인용하지 말고 장절만 적으십시오(예: '사 43:2 참조'). 기억에 의존해 인용하면 '확인 필요'를 붙여도 오류가 됩니다. 히브리어, 헬라어, LXX 문구도 제공된 원문에서만 옮기십시오. 제공되지 않은 본문의 원문 구절은 옮기지 말고, 낱말의 사전형(어근)만 쓸 때는 '(원문 확인 필요)'를 붙이십시오. 신약의 인용 문구를 LXX 문구로 쓰지 마십시오. 원어를 직접 옮긴 것은 '사역'으로 표시하고, 논증에 맞추려고 번역어를 바꾸지 마십시오. MT·LXX·영역본과 장절이 다르면 함께 표기하십시오.",
+  "④ 구분: 학자의 견해와 이 분석의 추론을 구분해 표시하십시오. 질문이 요구하지 않은 별도의 제안이나 설교 적용은 덧붙이지 마십시오.",
+  "⑤ 단정 금지: 원인, 연대, 위치, 저자 귀속이 불확실하거나 학자마다 다르면 견해별로 제시하십시오. 각 견해는 그 지지자가 인정할 이름과 형태로 서술하십시오.",
+  "⑥ 형식: 서론 없이 본론부터 쓰고, 비교가 필요한 내용은 표로 정리하십시오."
+];
+const PLATFORM = {
+  notebooklm: { label: "NotebookLM",
+    rule: "",
+    tip: "NotebookLM: 연구 본문의 개역개정(필요하면 MT·LXX·관련 구절)을 아래 입력란에 넣고, 같은 본문을 소스로도 추가하십시오(대화가 길어져도 유지됩니다). 신약 인용 구절이 확인되면 그 본문도 추가하십시오. 각 단계 답변은 노트로 저장하고 9·10단계에서 함께 선택하십시오. 인용 번호는 화면에서 눌러 원문을 확인하고, 복사한 글의 쪽수는 그대로 믿지 마십시오." },
+  claude: { label: "Claude 프로젝트",
+    rule: " 웹 검색으로 확인한 내용은 '웹'으로 표시하고 출처를 밝히십시오.",
+    tip: "Claude 프로젝트: 연구 본문의 개역개정을 프로젝트 자료로 올리거나 아래 입력란에 붙여 넣으십시오. 1–10단계는 한 대화에서 이어 진행하고, 새 대화를 열면 시작 지침과 2단계 난제 표를 먼저 붙여 넣으십시오." },
+  other: { label: "기타 AI",
+    rule: " 웹 검색으로 확인한 내용은 '웹'으로 표시하고 출처를 밝히십시오.",
+    tip: "기타 AI: 아래 입력란에 개역개정 본문을 붙여 넣어 시작 지침과 함께 보내고, 연구 자료(주석, 신앙고백 원문)를 먼저 올려 두십시오." }
+};
+const STYLE = {
+  level: {
+    easy: "⑦ [난이도: 쉽게] 현장 설교자가 바로 이해할 수 있게 쓰십시오. 신학 전문용어와 원어는 꼭 필요할 때만 쓰고, 처음 나올 때 괄호 안에 쉬운 풀이를 다십시오. 문장은 짧게 쓰고, 어려운 개념은 예를 들어 설명하십시오. 쉽게 쓰더라도 정확성과 출처 규칙은 그대로 지키십시오.",
+    standard: "⑦ [난이도: 표준] 신학교를 졸업한 목회자를 독자로 삼으십시오. 전문용어는 쓰되, 핵심 용어는 처음 나올 때 한 줄로 풀이하십시오.",
+    expert: "⑦ [난이도: 전문] 연구자를 독자로 삼아 학술 용어와 원어 표기를 그대로 쓰고, 학계 논의 수준으로 서술하십시오."
+  },
+  length: {
+    brief: "⑧ [분량: 간략] 각 단계에서 가장 중요한 내용만 다루십시오. 표는 하나 이내로 하고, 세부 논거는 생략하되 생략했다는 사실을 밝히십시오.",
+    normal: "⑧ [분량: 보통] 핵심 논거와 주요 견해를 다루되, 부차적인 세부 사항은 줄이십시오.",
+    detailed: "⑧ [분량: 상세] 논거, 견해, 출처를 빠짐없이 자세히 다루십시오."
+  },
+  summary: "⑨ [답변 구성] 모든 답변을 '핵심 요약'(3줄 이내)으로 시작하고, 이어서 '자세한 설명'을 쓰십시오."
+};
+const TEXT_FIELDS = [
+  { id: "nkrv", short: { OT: "개역개정", NT: "개역개정" },
+    label: { OT: "① 개역개정 본문 (권장)", NT: "① 개역개정 본문 (권장)" },
+    tag: { OT: "제공된 개역개정 본문", NT: "제공된 개역개정 본문" },
+    ph: { OT: "대한성서공회 홈페이지에서 연구 본문의 개역개정을 절 번호와 함께 붙여 넣으십시오.", NT: "대한성서공회 홈페이지에서 연구 본문의 개역개정을 절 번호와 함께 붙여 넣으십시오." } },
+  { id: "orig", short: { OT: "MT", NT: "헬라어 원문" },
+    label: { OT: "② MT 히브리어 본문 (선택)", NT: "② 헬라어 원문 (선택)" },
+    tag: { OT: "제공된 MT 본문", NT: "제공된 헬라어 원문" },
+    ph: { OT: "히브리어 본문(예: 웨스트민스터 레닌그라드 사본, BHS)을 절 번호와 함께 붙여 넣으십시오.", NT: "헬라어 본문(예: SBLGNT, NA28)을 절 번호와 함께 붙여 넣으십시오." } },
+  { id: "lxx", short: { OT: "LXX", NT: "구약 인용 LXX" },
+    label: { OT: "③ LXX 본문 (선택)", NT: "③ 인용된 구약의 LXX 본문 (선택)" },
+    tag: { OT: "제공된 LXX 본문", NT: "제공된 LXX 본문(인용된 구약)" },
+    ph: { OT: "칠십인역 본문(예: Swete, Rahlfs)을 장절 번호와 함께 붙여 넣으십시오. 장 번호가 MT와 다를 수 있습니다.", NT: "이 본문이 인용하는 구약 구절의 칠십인역을 장절 번호와 함께 붙여 넣으십시오." } },
+  { id: "rel", short: { OT: "관련 구절", NT: "관련 구절" },
+    label: { OT: "④ 관련 구절의 개역개정 (선택)", NT: "④ 관련 구절의 개역개정 (선택)" },
+    tag: { OT: "제공된 관련 구절 개역개정 본문", NT: "제공된 관련 구절 개역개정 본문" },
+    ph: { OT: "연구 범위 밖에서 자주 인용할 구절(신약 인용 구절, 핵심 병행 구절)의 개역개정을 장절과 함께 붙여 넣으십시오. 3단계 이후에 추가해도 됩니다.", NT: "연구 범위 밖에서 자주 인용할 구절(인용된 구약, 병행 본문)의 개역개정을 장절과 함께 붙여 넣으십시오." } }
+];
+let currentTestament = 'OT';
+const AUDIENCES = {
+  all:   { label: "전 세대 (주일 낮 예배)" },
+  child: { label: "어린이" },
+  teen:  { label: "청소년" },
+  youth: { label: "청년" },
+  a3040: { label: "30–40대" },
+  a5060: { label: "50–60대" },
+  a70:   { label: "70대 이상" }
+};
+const LITERAL4 = {
+  OT: "[사역] 끝으로 [해당 본문]을 절마다 '절, MT, 사역, 문법 근거(동사 형태와 구문), 개역개정과 다른 점, 확인 필요' 표로 옮기십시오. 3단계에서 따른 독법(케티브/케레, MT/LXX)을 표시하고, 사역은 '사역'으로 표시하십시오. 2단계 난제와 관련된 절은 하나로 확정하지 말고 견해별 사역을 나란히 두십시오.",
+  NT: "[사역] 끝으로 [해당 본문]을 절마다 '절, 헬라어 원문, 사역, 문법 근거(시제·태·법과 구문), 개역개정과 다른 점, 확인 필요' 표로 옮기십시오. 3단계에서 따른 독법을 표시하고, 사역은 '사역'으로 표시하십시오. 2단계 난제와 관련된 절은 하나로 확정하지 말고 견해별 사역을 나란히 두십시오."
+};
+const LITERAL9 = {
+  OT: "[사역 보정] 끝으로 판정에 따라 4단계 사역에서 바뀌는 절만 다시 제시하고, 바뀐 이유를 난제 번호와 함께 적으십시오.",
+  NT: "[사역 보정] 끝으로 판정에 따라 4단계 사역에서 바뀌는 절만 다시 제시하고, 바뀐 이유를 난제 번호와 함께 적으십시오."
+};
+const PULPIT_SEG = "[설교자를 위한 한 줄] 답변 끝에, 이 연구 전체가 설교 준비에 주는 의미를 한두 문장으로 덧붙이십시오.";
+// ───────────────────────── v7.5: 본문 전달 방식 ─────────────────────────
+const DELIVERY_HINT = {
+  source: "본문을 파일로 내려받아 NotebookLM 소스(또는 Claude 프로젝트 자료, Gemini 첨부)로 올리십시오. 시작 지침에는 파일 이름만 들어가므로 채팅 길이 제한에 걸리지 않습니다. 파일도 AI의 맥락은 차지하므로 범위 밖 본문은 넣지 마십시오.",
+  split: "파일을 쓸 수 없을 때 쓰십시오. 시작 지침을 보낸 뒤 [자료 1/N]…을 차례로 보내고, 마지막에 [자료 확인]으로 빠진 절이 없는지 점검합니다. 관련 구절(④)은 필요한 단계에서 [추가 자료]로 따로 보냅니다.",
+  inline: "본문을 시작 지침 안에 함께 넣습니다. 본문이 짧을 때만 쓰십시오. 길면 채팅 입력 한도에 걸려 잘릴 수 있습니다."
+};
+const FILE_PREFIX = { nkrv: "NKRV", orig: { OT: "MT", NT: "GNT" }, lxx: "LXX", rel: "REL" };
+let currentDelivery = 'source', currentChunk = 4000;
+try {
+  const d = localStorage.getItem("exegesis-v7-delivery"); if (d && DELIVERY_HINT[d]) currentDelivery = d;
+  const c = localStorage.getItem("exegesis-v7-chunk"); if (c) currentChunk = parseInt(c, 10) || 4000;
+} catch (e) {}
+function saveDelivery() {
+  currentDelivery = document.getElementById('delivery-select').value;
+  currentChunk = parseInt(document.getElementById('chunk-select').value, 10);
+  try { localStorage.setItem("exegesis-v7-delivery", currentDelivery); localStorage.setItem("exegesis-v7-chunk", String(currentChunk)); } catch (e) {}
+}
+// 파일 이름은 영문·숫자로만 만든다(한글 파일 이름은 일부 브라우저에서 'download'로 바뀜).
+function slugPassage(p) {
+  const book = findBook(p || "");
+  const ref = ((p || "").match(/(\d+)\s*:\s*(\d+)(?:\s*[-–—~]\s*(\d+))?/) || []);
+  const id = book ? book[0] : "text";
+  return ref[1] ? id + ref[1] + "_" + ref[2] + (ref[3] ? "-" + ref[3] : "") : id;
+}
+function fileNameFor(f, passage) {
+  const pre = typeof FILE_PREFIX[f.id] === 'string' ? FILE_PREFIX[f.id] : FILE_PREFIX[f.id][currentTestament];
+  return pre + "_" + slugPassage(passage) + ".txt";
+}
+function filledFields() {
+  return TEXT_FIELDS.map(f => ({ f, v: document.getElementById('text-' + f.id).value.trim() })).filter(x => x.v);
+}
+function verseCount(text) { return text.split(/\n/).filter(l => /^\s*(\d{1,3}:)?\d{1,3}\s/.test(l)).length; }
+function buildChunks(passage) {
+  // 관련 구절(rel)은 처음 자료에서 빼고 [추가 자료]로 보낸다. 절(줄) 중간에서 자르지 않는다.
+  const pieces = [];
+  filledFields().filter(x => x.f.id !== 'rel').forEach(({ f, v }) => {
+    let buf = [];
+    const flush = () => { if (buf.length) { pieces.push({ tag: f.tag[currentTestament], text: buf.join("\n") }); buf = []; } };
+    v.split(/\n/).forEach(line => {
+      if (buf.join("\n").length + line.length + 1 > currentChunk) flush();
+      buf.push(line);
+    });
+    flush();
+  });
+  const n = pieces.length;
+  return pieces.map((p, i) => `[자료 ${i + 1}/${n}] ${p.tag} (${passage})\n${p.text}\n(${i + 1}/${n} 끝 — 분석하지 말고 "${i + 1}/${n} 받음"이라고만 답하십시오)`);
+}
+const CHECK_MSG = "[자료 확인] 받은 자료를 표로만 정리하십시오: 자료 번호, 판본, 책·장, 첫 절, 끝 절, 절 수. 연구 범위에서 빠진 절이 있으면 그 절 번호만 적으십시오. 아직 1단계를 시작하지 마십시오.";
+function extraMsg(passage) {
+  const rel = document.getElementById('text-rel').value.trim();
+  return rel ? "[추가 자료] 관련 구절의 개역개정 본문입니다. 규칙 ③의 인용 기준에 더하십시오. 분석하지 말고 '추가 자료 받음'이라고만 답하십시오.\n" + rel : "";
+}
+function downloadField(id) {
+  const raw = document.getElementById('passage-input').value.trim();
+  const f = TEXT_FIELDS.find(x => x.id === id);
+  const v = document.getElementById('text-' + id).value.trim();
+  if (!f || !v) return;
+  const name = fileNameFor(f, raw);
+  const blob = new Blob(["[" + f.tag[currentTestament] + "] " + (raw || "") + "\n" + v + "\n"], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  showToast("'" + name + "' 내려받기");
+}
+let currentChunks = [];
+function copyChunk(i) { writeClipboard(currentChunks[i], `자료 ${i + 1}/${currentChunks.length} 복사 완료!`); }
+function copyCheckMsg() { writeClipboard(CHECK_MSG, "자료 확인 요청 복사 완료!"); }
+function copyExtra() { const t = extraMsg(); if (t) writeClipboard(t, "추가 자료 복사 완료!"); }
+function deliveryLines(passage) {
+  const filled = filledFields();
+  if (!filled.length) return [];
+  if (currentDelivery === 'inline')
+    return filled.map(({ f, v }) => "[" + f.tag[currentTestament] + "] 규칙 ③의 인용 기준입니다. 이 본문에서만 그대로 옮기십시오.\n" + v);
+  if (currentDelivery === 'source')
+    return ["[본문 자료] 규칙 ③의 인용 기준은 다음 소스 파일입니다. 이 파일들에서만 그대로 옮기고, 이 파일에 없는 구절은 따옴표로 인용하지 말고 장절만 적으십시오: "
+      + filled.map(({ f }) => "'" + fileNameFor(f, passage) + "'(" + f.tag[currentTestament] + ")").join(", ") + "."];
+  const n = buildChunks(passage).length;
+  return ["[본문 자료] 이 메시지 다음에 인용 기준이 될 본문을 [자료 1/" + n + "]부터 [자료 " + n + "/" + n + "]까지 나누어 보냅니다. 자료를 받는 동안에는 분석하지 말고 'n/N 받음'이라고만 답하십시오. 마지막에 [자료 확인] 요청이 오면 받은 자료를 표로 정리하고, 그 뒤 1단계 질문을 기다리십시오. 연구 중에 [추가 자료]가 오면 그것도 인용 기준에 더하십시오."];
+}
 
-        function detectTestament(input) {
-            if (currentMode === 'ot') return 'OT';
-            if (currentMode === 'nt') return 'NT';
+function buildStartPrompt(passage) {
+  const platform = PLATFORM[document.getElementById('platform-select').value] || PLATFORM.notebooklm;
+  const short = currentDepth === 'short';
+  const body = (short ? START_BODY_SHORT : START_BODY).map(l => l.startsWith("②") ? l + platform.rule : l);
+  const lines = [START_HEAD, ...body].map(l => l.replace(/\[해당 본문\]/g, passage));
+  lines.push("[확인할 곳] 모든 단계의 답변 맨 끝에 '확인할 곳 3가지' 표를 붙입니다. 이 표는 사용자가 직접 확인할 목록이며, AI가 판정하는 칸이 아닙니다.");
+  lines.push(STYLE.level[document.getElementById('level-select').value]);
+  lines.push(short ? SHORT_LENGTH : STYLE.length[document.getElementById('length-select').value]);
+  if (document.getElementById('summary-toggle').checked) lines.push(STYLE.summary);
+  deliveryLines(passage).forEach(l => lines.push(l));
+  lines.push("다시 말하지만, 이 메시지에는 '확인'이라고만 답하십시오.");
+  return lines.join("\n");
+}
+const VERIFY = { label: "인용·표기 점검", text: "방금 답변의 인용과 표기를 점검하십시오. ① 따옴표 안의 성경 인용을 제공된 개역개정 본문과 한 글자씩 대조하십시오. 제공되지 않은 구절을 따옴표로 인용했으면 '확인 필요' 표시가 있더라도 인용을 지우고 장절만 남기십시오. 말줄임표(…)로 줄인 인용은 오류가 아닙니다. ② 히브리어, 헬라어, LXX 문구는 제공된 원문과 대조하십시오. 원문이 제공되지 않았으면 '확인됨'으로 보고하지 말고 '원문 확인 필요'로 표시하십시오. ③ 신앙고백과 요리문답의 조항 번호와 내용, ④ 저자, 자료명, 쪽수를 자료에서 확인하십시오. 자료로 확인한 경우에만 고치고, 확인할 수 없으면 고치지 말고 '확인 필요'로 남기십시오. ⑤ 자료 번호가 1단계 자료 목록에 있는 번호와 저자인지 대조하고, 목록에 없는 번호는 '자료 외'로 고치십시오. ⑥ 본문뿐 아니라 표의 분류, 원어 열도 같은 기준으로 점검하십시오. 문법 해석, 논증, 등급 판단은 이 점검의 대상이 아니므로 '정확하다'고 보고하지 마십시오(교차 검증에서 다룹니다). 틀린 것과 확인할 수 없는 것만 '항목, 원래 답변, 수정, 근거' 표로 제시하고, 맞는 내용은 반복하지 마십시오. 이번 점검에서 고친 표기 방식은 이후 모든 단계에 계속 적용하십시오." };
+const CROSS = { label: "다른 AI와 교차 검증", text: "아래는 다른 AI가 같은 단계 질문에 답한 내용입니다. 방금 당신의 답변과 대조하여 사실관계가 서로 다른 지점과 한쪽에만 있는 중요한 내용을 표로 정리하십시오. 특히 ① 원어, LXX, 신약 원문의 인용, ② 문법 해석(동사 형태의 시제와 법, 구문), ③ 어원만으로 의미를 정한 곳, ④ 논증에 맞추려고 번역어를 바꾼 곳, ⑤ 근거 없이 한 견해를 채택한 곳, ⑥ 인용·암시 분류와 A–D 등급, ⑦ 앞 단계의 오류를 전제로 삼은 곳을 점검하십시오. 다른 지점마다 제공된 자료로 확인해 어느 쪽이 맞는지, 또는 둘 다 확인할 수 없는지 판정하십시오. 문체나 구성의 차이는 다루지 마십시오.\n\n[다른 AI의 답변을 여기에 붙여 넣으십시오]" };
+const FOLLOWUPS = [
+  { label: "더 쉽게 다시", text: "방금 답변을 현장 설교자가 바로 이해할 수 있게 다시 써 주십시오. 전문용어에는 쉬운 풀이를 달고, 핵심 요약 3줄과 쉬운 설명 순서로 쓰되, 내용의 정확성과 출처 표기는 유지하십시오." },
+  { label: "핵심만 다시", text: "방금 답변에서 이 단계의 질문에 직접 답하는 핵심만 5줄 이내로 정리해 주십시오." },
+  { label: "더 자세히", text: "방금 답변에서 생략하거나 간략히 다룬 논거와 견해, 출처를 자세히 보충해 주십시오." },
+  { label: "설교 언어로", text: "방금 답변의 내용을 설교에서 회중에게 그대로 말할 수 있는 쉬운 문장 3–5개로 바꿔 주십시오. 과장하거나 본문에 없는 내용을 덧붙이지 마십시오." },
+  VERIFY,
+  CROSS
+];
+const RULE_REMINDER = "[규칙 상기] 시작 지침의 진행 원칙과 공통 규칙 ①–⑥, 답변 방식을 지키십시오. 이 단계의 질문에만 답하고, 2단계 난제의 견해를 사실처럼 쓰지 마십시오. 따옴표 안의 개역개정과 원문은 제공된 본문(소스 파일이나 [자료])에서 그대로 옮기고, 제공되지 않은 구절은 인용하지 말고 장절만 적으며, 쪽은 확인한 것만 쓰십시오(주석의 첫 쪽이나 쪽 범위 대신 절 주석 위치). 자료는 1단계 목록(자료1–자료N)의 번호와 저자명으로만 표시하고, 목록에 없는 번호를 새로 만들지 말며, 목록에 없는 문헌은 '자료 외'로 표시하십시오.";
+const HANDOFF = "[2단계 인계] 먼저 2단계 난제 표의 마지막 열에서 이 단계(N단계)로 넘겨진 증거를 난제 번호별로 처리하고 '난제n: 증거 / 이 증거가 지지하는 견해(복수 가능) / 이 증거의 한계'로 표시하십시오. '확인했다', '입증한다'처럼 결론을 내리는 표현을 쓰지 마십시오(판정은 9단계). 넘겨진 증거가 없으면 '인계 없음'이라고 쓰십시오. 증거가 어떤 견해를 '지지한다'고 쓰려면 그 증거가 그 견해의 핵심 주장(예: 인물의 정체)에 직접 관련되어야 합니다. 주제만 비슷하면 '지지하는 견해 없음(주제적 배경)'으로 쓰십시오.";
+let startPromptText = "";
 
-            const cleanInput = input.toLowerCase().replace(/\s+/g, '');
-            if (!cleanInput) return 'NT';
+// ───────────────────────── v7.4: 확인할 곳 · 축약 4단계 ─────────────────────────
+const CHECK3 = "[확인할 곳] 답변 맨 끝에 '확인할 곳 3가지'를 '주장, 왜 확인해야 하는가, 확인 방법' 표로 적으십시오. 이 답변에서 결론에 가장 큰 영향을 주거나 근거가 약한 주장 3개를 고르고, 확인 방법에는 사용자가 직접 볼 곳(제공된 본문의 몇 절, 원문의 어느 단어, 어느 자료의 몇 절 주석)을 구체적으로 적으십시오. 이 표에서는 그 주장이 맞는지 판정하거나 '확인됨'으로 표시하지 마십시오.";
+const CHECK3_PULPIT = " 이 표는 '설교자를 위한 한 줄' 뒤에 두십시오.";
+const FLOW_FULL = "<span class='font-extrabold text-slate-800'>진행 순서</span> · <b>본문</b>(1 확정 · 3 본문 비평 · 4 번역·어휘) → <b>형태</b>(5 구조) → <b>세계</b>(6 배경) → <b>정경</b>(7 상호텍스트) → <b>그리스도</b>(8 구속사) → <b>판정</b>(9 난제·교리) → <b>선포</b>(10 명제·설교). 난제는 <b>2단계에서 열고 9단계에서 닫습니다.</b> 2단계 난제 표의 마지막 열이 3–8단계의 작업 목록이 되고, 9단계는 증거 점검표로 그 결과를 확인한 뒤 판정합니다. 모든 단계의 답 끝에는 <b>'확인할 곳 3가지'</b>가 붙습니다. AI의 판정이 아니라 여러분이 직접 확인할 목록입니다. <span class='text-blue-600 font-semibold'>3·4·7·9·10단계</span>는 답변을 받은 뒤 '인용·표기 점검'을, <span class='text-blue-600 font-semibold'>3·9단계</span>는 다른 AI와의 교차 검증을 권장하며, 문법 판단이 많은 <span class='text-red-600 font-semibold'>4단계</span>는 교차 검증을 꼭 거치십시오. 9단계의 '확인됨'은 원문 문구, 구체 쪽수, 또는 여러분의 점검 결과가 있을 때만 인정됩니다. 답을 받을 때마다 맨 아래 <b>'답변 검사'</b>에 붙여 넣어 인용, 쪽 범위, 자료 번호를 대조하십시오. 개역개정 인용의 최종 기준은 대한성서공회 본문입니다.";
+const FLOW_SHORT = "<span class='font-extrabold text-slate-800'>축약 4단계</span> · <b>① 본문과 난제</b> → <b>② 어휘와 구조</b> → <b>③ 구속사 연결과 잠정 판정</b> → <b>④ 명제와 적용</b>. 매주 설교 준비와 실습을 위한 방식입니다. 단계마다 답 끝의 <b>'확인할 곳 3가지'</b>를 직접 확인하십시오. <span class='text-blue-600 font-semibold'>②·③단계</span>는 '인용·표기 점검'과 교차 검증을 권장합니다(②는 문법 판단이 많습니다). ③단계의 판정은 모두 <b>잠정</b>입니다. 주일 본설교, 시리즈 기획, 쟁점이 무거운 본문은 정밀 10단계를 쓰십시오. 답을 받을 때마다 맨 아래 <b>'답변 검사'</b>에 붙여 넣어 인용, 쪽 범위, 자료 번호를 대조하십시오. 개역개정 인용의 최종 기준은 대한성서공회 본문입니다.";
+const START_BODY_SHORT = [
+  "지금부터 [해당 본문]을 다음 4단계로 연구합니다: ① 본문과 난제, ② 어휘와 구조, ③ 구속사 연결과 잠정 판정, ④ 명제와 적용. 질문에 나오는 단계 번호는 이 목록을 가리킵니다.",
+  "[진행 원칙]",
+  "- 각 단계에서는 그 단계의 질문에만 답하십시오. 판정은 ③단계에서 '잠정 판정'으로만 하고, 설교 적용은 ④단계에서만 다루십시오.",
+  "- 앞 단계의 표는 다시 쓰지 말고 '①단계 참조'처럼 표시하십시오. 점검에서 고친 내용과 표기 방식은 이후 단계에도 계속 따르십시오.",
+  "- 답변 끝에 다음 단계 안내나 추가 질문을 권하는 문구를 붙이지 마십시오.",
+  "[공통 규칙]",
+  "① 출처: 저자와 자료명을 밝히십시오. 쪽은 그 내용이 실린 쪽을 확인한 경우에만 쓰고, 아니면 '2:4 주석'처럼 절 주석 위치를 쓰십시오. 주석이 시작되는 첫 쪽이나 쪽 범위를 쪽수처럼 쓰지 마십시오.",
+  "② 확인: 자료로 확인되지 않는 주장은 '확인 필요'로, 제공된 자료에 없는 문헌이나 지식은 '자료 외'로 표시하십시오. 출처, 쪽수, 사본 독법, 원어 본문을 기억에 의존해 만들어 내지 마십시오.",
+  "③ 성경과 원문 인용: 따옴표 안의 성경 본문은 제공된 개역개정 본문에서 한 글자도 바꾸지 말고 옮기십시오. 제공되지 않은 구절은 따옴표로 인용하지 말고 장절만 적으십시오(예: '사 43:2 참조'). 기억에 의존해 인용하면 '확인 필요'를 붙여도 오류가 됩니다. 히브리어·헬라어 문구도 제공된 원문에서만 옮기고, 제공되지 않은 본문의 낱말은 사전형(어근)만 쓰고 '(원문 확인 필요)'를 붙이십시오. 원어를 직접 옮긴 것은 '사역'으로 표시하고, 논증에 맞추려고 번역어를 바꾸지 마십시오.",
+  "④ 구분: 학자의 견해와 이 분석의 추론을 구분해 표시하십시오. 질문이 요구하지 않은 제안이나 설교 적용은 덧붙이지 마십시오.",
+  "⑤ 단정 금지: 학자마다 다르거나 불확실하면 견해별로 제시하고, 각 견해는 그 지지자가 인정할 이름과 형태로 서술하십시오.",
+  "⑥ 형식: 서론 없이 본론부터 쓰고, 비교가 필요한 내용은 표로 정리하십시오."
+];
+const SHORT_LENGTH = "⑧ [분량] 각 단계 답변은 '확인할 곳' 표를 빼고 1,500자 안팎으로 쓰십시오. 표는 두 개 이내로 하고, 생략한 세부 사항이 있으면 생략했다고 밝히십시오.";
+const RULE_REMINDER_SHORT = "[규칙 상기] 시작 지침의 진행 원칙과 공통 규칙을 지키십시오. 따옴표 안의 개역개정과 원문은 제공된 본문(소스 파일이나 [자료])에서 그대로 옮기고, 제공되지 않은 구절은 인용하지 말고 장절만 적으며, 쪽은 확인한 것만 쓰십시오(아니면 절 주석 위치). 자료는 ①단계 목록의 번호와 저자명으로만 표시하고, 목록에 없는 번호를 새로 만들지 말며, 목록에 없는 문헌은 '자료 외'로 표시하십시오. 답변은 1,500자 안팎으로 쓰십시오.";
+const HANDOFF_SHORT = "[①단계 인계] 먼저 ①단계 난제 표에서 이 단계로 넘겨진 증거를 난제 번호별로 '난제n: 증거 / 이 증거가 지지하는 견해 / 한계'로 한두 줄씩 처리하십시오. 이 처리에서는 '확인했다', '입증한다' 같은 결론 표현을 쓰지 마십시오. 넘겨진 증거가 없으면 '인계 없음'이라고 쓰십시오. 증거가 어떤 견해를 '지지한다'고 쓰려면 그 증거가 그 견해의 핵심 주장(예: 인물의 정체)에 직접 관련되어야 합니다. 주제만 비슷하면 '지지하는 견해 없음(주제적 배경)'으로 쓰십시오.";
+const GRADES_SHORT = "등급: A 신약이 인용 공식을 쓰거나 축자적으로 인용한 경우(그 신약 구절을 직접 적은 경우에만), B 명백한 암시, C 정경적·모형론적 추론, D 근거 없는 알레고리(배제). '[해당 본문] 쪽 근거 단어' 칸이 비면 '연결 없음'으로 쓰십시오. 신약 구절이 다른 구약 본문을 인용하면 그 출처를 밝히고, 그 인용을 [해당 본문]의 A 근거로 쓰지 마십시오. 연결은 신약 본문이 실제로 다루는 사건이나 주제로만 분류하고, 근거 단어가 ①단계 난제의 특정 견해에 기대면 '난제n 견해X에 의존'이라고 적으십시오.";
+const VERDICT_SHORT = "끝으로 ①단계 난제마다 잠정 판정을 '난제, 채택한 견해, 결정적 근거(단계와 절·자료), 확인 상태, 남는 불확실성' 표로 쓰십시오. 확인 상태의 기본값은 '확인 필요'이며, 제공된 개역개정·원문의 해당 문구를 그대로 옮겼거나 자료의 구체적인 쪽을 댄 경우에만 '확인됨'으로 쓰십시오. 신앙고백은 판정의 근거로 쓰지 마십시오. 견해를 합쳐 채택하려면 두 견해의 전제가 양립하는지 먼저 밝히십시오. 견해를 합치거나 고칠 때 2단계에서 정한 견해의 내용을 바꿔 쓰지 마십시오. 예를 들어 인물의 정체에 관한 견해를 '모형론적으로 가리킨다'는 견해로 바꾸면 그것은 다른 견해입니다. 이런 경우 원래 견해의 판정(채택, 기각, 보류)을 먼저 밝히고, 바뀐 내용은 '새 견해'로 따로 이름 붙여 근거와 함께 쓰십시오.";
+function buildShort4() {
+  const a = currentAudience;
+  const label = AUDIENCES[a].label;
+  const head = "[해당 본문]에 대해 두 명제를 각각 한 문장으로 쓰십시오. ① 석의 명제: 본문이 원래 청중(독자)에게 말한 내용으로, ③단계에서 '확인 필요'로 남은 해석에 기대지 않고 씁니다. ② 설교 명제: ③단계의 연결을 반영해 오늘의 회중에게 선포할 내용이되, 연결 등급이 허락하는 것 이상으로 말하지 마십시오. ";
+  const audience = a === 'all'
+    ? "청중은 여러 세대가 함께 듣는 주일 낮 예배입니다. 직설법에서 명령법으로 이어지는 설교 개요(대지 2–3개)와 온 회중을 위한 적용 3가지를 제시하십시오. "
+    : "청중은 '" + label + "'입니다. 직설법에서 명령법으로 이어지는 설교 개요(대지 2–3개, 대지마다 이 세대의 삶에 닿는 적용)와 이 세대를 위한 구체적 적용 3가지를 제시하십시오. 세대의 특성은 예시로만 쓰고 본문에서 출발하십시오. ";
+  const tail = "명령법은 본문의 명령과 권고에서 끌어오고 근거 절을 표시하십시오. 본문에 명령이 없으면 그 사실을 밝히고, 부정·금지 구문이나 다른 사람의 말을 인용한 구절을 회중에게 주는 명령으로 바꾸지 마십시오. ③단계의 잠정 판정과 어긋나는 적용은 쓰지 마십시오. 판정을 보류했거나 '확인 필요'인 해석(예: 인물의 정체)을 설교 주제, 개요, 적용에서 사실처럼 쓰지 마십시오. 그리스도와의 연결은 ③단계 등급표가 허락하는 범위에서만 쓰고, C등급은 그렇다고 밝히십시오. 끝으로 위에서 쓴 적용을 한 줄씩 그대로 옮겨 '근거 절, 그 절에서 동작의 주체(하나님인가 백성인가), 직설법 근거' 표로 점검하고, 하나님이 하시는 일을 회중의 의무로 바꿨거나 약속을 명령으로 바꿨으면 '수정 필요'와 수정안을 쓰십시오. 점검에서 '수정 필요'로 판정한 적용이 있으면, 표 아래에 '최종 적용 목록'을 만들어 수정안으로 바꾼 적용을 다시 쓰고, 개요·활동·질문에도 같은 문장이 있으면 함께 고치십시오.";
+  return head + audience + tail;
+}
+const SHORT_STAGES = [
+  { id:101, cat:"①단계", title:"본문과 난제", flags:true,
+    ot:"[해당 본문]의 단락 경계와 앞뒤 문맥, 책 안에서의 위치를 3줄 이내로 밝히십시오. 개역개정·MT·LXX 사이에 장절이나 내용의 차이가 있고 그것이 해석에 영향을 줄 때만 한두 줄로 적으십시오. 이어서 해석이 가장 크게 갈리는 난제를 1–2개 골라 '난제1, 난제2'로 번호를 붙이고, '견해, 주장자(제공된 자료에서), 핵심 논거, 약점, 판정에 필요한 증거와 다룰 단계(② 또는 ③)' 표 하나로 정리하십시오. 난제는 [해당 본문] 안의 절에서만 고르십시오. 약점은 그 견해의 지지자도 인정할 만한 내용으로 쓰십시오. 이 단계에서는 판정하지 마십시오. 끝으로 이 본문을 다루는 제공된 자료에 '자료1, 자료2…' 번호를 붙여 '자료 번호, 저자, 자료명' 목록을 만드십시오(본문 자료 제외). 이후 단계는 이 번호와 저자명을 함께 씁니다.",
+    nt:"[해당 본문]의 단락 경계와 앞뒤 문맥, 책 안에서의 위치를 3줄 이내로 밝히십시오. 개역개정과 헬라어 원문 사이에 절 구분이나 중요한 이문이 있고 그것이 해석에 영향을 줄 때만 한두 줄로 적으십시오. 이어서 해석이 가장 크게 갈리는 난제를 1–2개 골라 '난제1, 난제2'로 번호를 붙이고, '견해, 주장자(제공된 자료에서), 핵심 논거, 약점, 판정에 필요한 증거와 다룰 단계(② 또는 ③)' 표 하나로 정리하십시오. 난제는 [해당 본문] 안의 절에서만 고르십시오. 약점은 그 견해의 지지자도 인정할 만한 내용으로 쓰십시오. 이 단계에서는 판정하지 마십시오. 끝으로 이 본문을 다루는 제공된 자료에 '자료1, 자료2…' 번호를 붙여 '자료 번호, 저자, 자료명' 목록을 만드십시오(본문 자료 제외). 이후 단계는 이 번호와 저자명을 함께 씁니다." },
+  { id:102, cat:"②단계", title:"어휘와 구조", handoff:true, module:"structure", verify:true, cross:true, crossRequired:true,
+    ot:"[해당 본문]에서 해석에 가장 중요한 단어 3개를 골라 '단어(원어), 이 본문의 형태, 같은 책과 정경의 용례, 문맥적 의미' 표로 정리하십시오. 의미는 실제 용례로 정하고 어원으로 정하지 마십시오. 개역개정의 번역에서 원문의 뉘앙스가 달라진 곳을 1–2곳 지적하되, 동사 형태와 구문(와우 연속법, 예언적 완료 등)의 근거를 대십시오. 이어서 본문의 구조를 간단한 구조도로 제시하고, 구조상의 중심과 논리적 정점을 구분하십시오. 본문에서 실제로 확인되는 장치만 쓰고, 교차대칭은 짝마다 공유하는 원어 단어가 있을 때만 쓰십시오. 끝으로 후대의 개념(신약과 교리의 개념, 현대의 사고)을 원래 청중에게 투사하는 읽기를 1–2개 골라 '본문 요소, 시대착오적 독법, 원래 청중이 들은 의미' 표로 적으십시오.",
+    nt:"[해당 본문]에서 해석에 가장 중요한 단어 3개를 골라 '단어(원어), 이 본문의 형태, 같은 저자와 LXX·신약의 용례, 문맥적 의미' 표로 정리하십시오. 의미는 실제 용례로 정하고 어원으로 정하지 마십시오. 개역개정의 번역에서 원문의 뉘앙스가 달라진 곳을 1–2곳 지적하되, 시제·태·법과 구문(분사, 접속사, 논리 연결어)의 근거를 대십시오. 이어서 본문의 구조(논증 흐름이나 내러티브 흐름)를 간단한 구조도로 제시하고, 구조상의 중심과 논리적 정점을 구분하십시오. 본문에서 실제로 확인되는 장치만 쓰십시오. 끝으로 후대의 개념(후대 교리, 현대의 사고)을 원래 독자에게 투사하는 읽기를 1–2개 골라 '본문 요소, 시대착오적 독법, 원래 독자가 들은 의미' 표로 적으십시오." },
+  { id:103, cat:"③단계", title:"구속사 연결과 잠정 판정", handoff:true, module:"christ", verify:true, cross:true,
+    ot:"먼저 [해당 본문]이 스스로 말하지 않는 것(한계)을 한두 줄로 밝히십시오. 이어서 이 본문과 신약의 연결을 '신약 본문, 연결 방식(인용, 암시, 모티프), [해당 본문] 쪽 근거 단어(원어와 절), 신약 쪽 근거 단어, 등급' 표로 정리하십시오. " + GRADES_SHORT + " " + VERDICT_SHORT,
+    nt:"먼저 [해당 본문]이 스스로 말하지 않는 것(한계)을 한두 줄로 밝히십시오. 이어서 이 본문의 구약 배경과 그리스도 안의 성취를 '관련 본문, 연결 방식(인용, 암시, 모티프), [해당 본문] 쪽 근거 단어(원어와 절), 관련 본문 쪽 근거 단어, 등급' 표로 정리하고, 그리스도께서 이루신 일(직설법)과 독자에게 주어진 명령(명령법)의 관계를 본문의 논리 연결어로 밝히십시오. " + GRADES_SHORT.replace("신약이 인용 공식을", "본문이 인용 공식을").replace("그 신약 구절을", "그 구절을") + " " + VERDICT_SHORT },
+  { id:104, cat:"④단계", title:"명제와 적용", verify:true, pulpit:true, audience:true,
+    ot: buildShort4, nt: buildShort4 }
+];
+let currentDepth = 'full';
+try { const d = localStorage.getItem("exegesis-v7-depth"); if (d === 'short' || d === 'full') currentDepth = d; } catch (e) {}
+function setDepth(d) {
+  currentDepth = d;
+  try { localStorage.setItem("exegesis-v7-depth", d); } catch (e) {}
+  updateAll();
+}
+function renderDepth() {
+  ['full','short'].forEach(m => {
+    document.getElementById('depth-'+m).className = (m === currentDepth)
+      ? "px-3 py-1.5 rounded-lg bg-white text-blue-600 shadow-sm transition-all font-bold"
+      : "px-3 py-1.5 rounded-lg transition-all text-slate-500 hover:text-slate-800";
+  });
+  const short = currentDepth === 'short';
+  document.getElementById('depth-hint').innerText = short
+    ? "매주 설교 준비와 실습용 · 단계당 답변 1,500자 안팎 · 판정은 잠정"
+    : "주일 본설교·시리즈·쟁점 본문용 · 난제를 2단계에서 열고 9단계에서 판정";
+  document.getElementById('literal-row').style.display = short ? 'none' : '';
+  const len = document.getElementById('length-select');
+  len.disabled = short; len.title = short ? "축약 4단계에서는 분량이 1,500자 안팎으로 고정됩니다." : "";
+  document.getElementById('copyall-btn').innerText = short ? "시작 지침 + ①–④단계 전체 복사" : "시작 지침 + 1–10단계 전체 복사";
+  document.getElementById('audience-title').innerText = short ? "④단계 청중 선택" : "10단계 청중 선택";
+  document.getElementById('flow-guide').innerHTML = short ? FLOW_SHORT : FLOW_FULL;
+}
 
-            for (let b of otBooks) {
-                if (cleanInput.includes(b)) return 'OT';
-            }
-            for (let b of ntBooks) {
-                if (cleanInput.includes(b)) return 'NT';
-            }
-            return 'NT';
-        }
+// ───────────────────────── 5. 단계 정의 ─────────────────────────
+// module: 장르 모듈 삽입 위치(structure/background/christ), flags: 권별 경고 삽입 여부
+// handoff: 2단계 난제 인계 지시 삽입, verify: 점검·교차 검증 버튼 표시, cross: 교차 검증 특히 권장
+const STAGE2_TAIL = "난제마다 '견해, 주장자, 핵심 논거, 약점'을 정리하되, 난제 정리는 표 하나로만 하고 표 밖에서 같은 내용을 다시 서술하지 마십시오. 이 단계에서는 판정하지 마십시오. 표의 마지막 열에는 그 난제를 판정하는 데 필요한 증거와 그 증거를 다룰 단계를 다음 목록에서 골라 적으십시오: 3 본문 비평, 4 번역 대조와 핵심 어휘, 5 문학 구조, 6 역사·사회문화 배경, 7 정경 상호텍스트, 8 구속사와 기독론. 이 열은 3–8단계가 그대로 이어받아 처리할 작업 목록이므로 구체적으로 쓰십시오(예: '이 동사의 구약 용례 → 4'). 반드시 난제별로 정리하고, 판정(9단계)과 설교(10단계)는 넣지 마십시오.";
+const STAGE2_HEAD = "학자는 1단계 자료 목록의 번호와 함께 적고(목록에 없으면 '자료 외'), 학자마다 그 분류에 넣은 근거를 한 줄씩 적고, 아래 난제 표에서 견해의 주장자로 쓰는 학자는 모두 이 분류에 포함하십시오. 이어서 해석이 가장 첨예하게 갈리는 난제(Crux Interpretum)를 골라 '난제1, 난제2…'로 번호를 붙이십시오. 난제는 연구 범위([해당 본문]) 안의 절에서만 고르고, 범위 밖 문맥은 근거로만 쓰십시오. 각 견해의 약점은 그 견해의 지지자도 인정할 만한 내용으로 쓰고, 반대 진영의 평가를 약점으로 쓰지 마십시오. ";
+const STAGE8_TAIL_OT = "'이미와 아직'을 구분하고, 이스라엘과 교회의 관계에 관한 주요 견해를 각 견해의 지지자가 인정할 이름과 형태로, 자료 속 대표자와 함께 제시하십시오(판정은 9단계). 마지막으로 이 본문을 도덕적 교훈으로 축소하는 독법과 복음 중심 독법을 표로 대조하고, 복음 중심 독법에서 순종과 율법이 차지하는 자리도 한 행으로 밝히십시오.";
+const GRADES = "검토 결과는 '사건, [해당 본문] 쪽 근거 단어(원어와 절), 신약 본문, 신약 쪽 근거 단어(원어), 등급' 표로 정리하십시오. 등급: A 신약이 인용 공식을 쓰거나 축자적으로 인용한 경우, B 신약의 명백한 암시, C 정경적·모형론적 추론, D 근거 없는 알레고리(배제). A는 인용 공식이나 축자 일치를 보이는 신약 구절을 직접 적은 경우에만 주고, 7단계에서 '암시'로 분류한 연결은 B 이하로 하십시오. '[해당 본문] 쪽 근거 단어' 칸이 비면 그 연결은 '연결 없음'입니다. 신약 구절이 다른 구약 본문을 인용하는 경우, 그 인용은 [해당 본문]의 A 근거가 될 수 없습니다. 사건 칸(성육신, 고난과 죽음, 부활과 승천, 성령 강림, 재림)의 이름을 바꾸거나 괄호로 뜻을 넓히지 마십시오. 신약 본문이 그 사건 자체를 다루지 않으면 그 칸은 '연결 없음'입니다. 근거 단어가 2단계 난제의 특정 견해(예: 인물의 정체)에 기대면 '난제n 견해X에 의존'이라고 적으십시오.";
+const CONFESSIONS = "이어서 해석이 개혁주의 표준문서(웨스트민스터 신앙고백, 대·소요리문답, 하이델베르크 요리문답, 벨직 신앙고백, 도르트 신경)와 조화되는지 점검하십시오. 관련 조항이 있는 문서만 다루고, 조항은 번호와 함께 그 내용을 자료나 원문에서 확인해 인용하며, 확인할 수 없으면 '조항 확인 필요'로 표시하십시오. 조항에 없는 내용을 덧붙여 요약하지 마십시오.";
+const STAGE9_HEAD = "판정에 앞서 '증거 점검표'를 만드십시오. 2단계의 난제마다 '결정적 근거, 그 근거를 다룬 단계, 확인 근거, 확인 상태'를 적으십시오. 확인 상태의 기본값은 '확인 필요'입니다. '확인됨'은 확인 근거 칸에 (가) 제공된 개역개정·원문의 해당 문구를 그대로 옮겼거나, (나) 자료의 구체적인 쪽(첫 쪽이나 쪽 범위가 아닌 쪽)을 댔거나, (다) 사용자가 점검이나 교차 검증에서 확인했다고 밝힌 경우에만 쓰십시오. 앞 단계에서 '확인 필요'나 '원문 확인 필요'로 남은 근거는 '확인 필요'입니다. 신앙고백은 판정의 근거로 쓰지 말고 판정 뒤의 조화 점검에만 쓰십시오. 이어서 난제마다 이 연구의 판정(채택한 견해, 결정적 근거, 남는 불확실성)을 제시하십시오. 핵심 근거가 '확인 필요'인 난제는 '잠정 판정'으로 표시하십시오. 견해를 합치거나 고칠 때 2단계에서 정한 견해의 내용을 바꿔 쓰지 마십시오. 예를 들어 인물의 정체에 관한 견해를 '모형론적으로 가리킨다'는 견해로 바꾸면 그것은 다른 견해입니다. 이런 경우 원래 견해의 판정(채택, 기각, 보류)을 먼저 밝히고, 바뀐 내용은 '새 견해'로 따로 이름 붙여 근거와 함께 쓰십시오. 서로 다른 견해를 합쳐 채택하려면, 먼저 두 견해의 핵심 전제(예: 핵심 낱말이 가리키는 대상)가 양립하는지 검토하고, 양립하지 않으면 하나를 고르거나 판정을 보류하십시오. '남는 불확실성'에는 판정을 바꿀 수 있는 실제 쟁점을 적으십시오. ";
+function buildStage10() {
+  const a = currentAudience;
+  const label = AUDIENCES[a].label;
+  const head = "[해당 본문]에 대해 두 명제를 각각 한 문장으로 쓰십시오. ① 석의 명제: 본문이 원래 청중(독자)에게 말한 내용으로, 후대의 개념과 9단계에서 '잠정 판정'이나 '확인 필요'로 남은 해석을 넣지 않고 씁니다. ② 설교 명제: 8단계의 성취를 반영해 오늘의 회중에게 선포할 내용입니다. 석의 명제가 본문 전체 단락을 포괄하는지, 5단계에서 찾은 정점과 어떻게 연결되는지 확인하십시오. ";
+  const audience = a === 'all'
+    ? "청중은 여러 세대가 함께 듣는 주일 낮 예배입니다. 다음을 제시하십시오: 설교 주제 5가지(각각 주어와 서술어를 갖춘 20자 이내의 문장), 직설법에서 명령법으로 이어지는 설교 개요, 온 회중을 위한 통합 적용과 교육 목표, 그리고 어린이·청소년·청년·30–40대·50–60대·70대 이상에게 각각 한두 문장의 적용 메모. "
+    : "청중은 '" + label + "'입니다. 이 세대를 위해 다음을 자세히 제시하십시오: 설교 주제 5가지(각각 주어와 서술어를 갖춘 20자 이내의 문장), 직설법에서 명령법으로 이어지는 설교 개요(대지마다 이 세대의 삶에 닿는 적용 포함), 교육 목표(아는 것, 태도, 행동), 구체적 적용 3–5가지, 소그룹 나눔 질문 3개, 이 세대에서 빠지기 쉬운 도덕주의 적용과 그 대안" + ((a === 'child' || a === 'teen') ? ", 공과 활동 방향 2가지" : "") + ". 세대의 특성은 일반화가 아니라 예시로만 쓰고, 언제나 본문에서 출발하십시오. ";
+  const tail = "명령법은 가능하면 본문에 있는 명령과 권고에서 끌어오고 근거 절을 표시하십시오. 본문에 명령이 없으면 그 사실을 밝히고, 부정·금지 구문이나 다른 사람의 말을 인용한 구절을 회중에게 주는 명령으로 바꾸지 마십시오. 9단계의 판정과 어긋나는 적용은 쓰지 마십시오. 9단계에서 판정을 보류했거나 다르게 판정한 해석(예: 인물의 정체, 사건의 성격)을 설교 주제, 개요, 적용, 활동, 질문에서 사실처럼 쓰지 마십시오. 그리스도와의 연결은 8단계 등급표가 허락하는 범위에서만 쓰고, C등급(정경적·모형론적 추론)은 그렇다고 밝히십시오. 끝으로 위에서 쓴 적용을 한 줄씩 그대로 옮겨 점검 표를 만드십시오(가상의 예를 만들지 마십시오): 근거 절, 그 절에서 동작의 주체(하나님인가 백성인가), 명령이 같은 본문의 직설법에 근거하는지, 원래 청중과 오늘의 회중을 잇는 원리. 근거 절의 주체가 하나님인데 적용에서 행위자를 회중으로 바꿨거나, 본문의 약속을 명령으로 바꿨다면 '수정 필요'로 표시하고 수정안을 제시하십시오. 점검에서 '수정 필요'로 판정한 적용이 있으면, 표 아래에 '최종 적용 목록'을 만들어 수정안으로 바꾼 적용을 다시 쓰고, 개요·활동·질문에도 같은 문장이 있으면 함께 고치십시오.";
+  return head + audience + tail;
+}
+const STAGES = [
+  { id:1, cat:"1단계", title:"본문 확정과 자료 점검", flags:true,
+    ot:"[해당 본문]의 문학 단위 경계를 형식 표지(도입·종결 공식, 화자·청자 전환, 장르 전환, 수미상관)로 확정하십시오. 장 구분과 실제 문학 단위가 다르면 그 사실과 학자별 경계 설정의 차이를 밝히고, 앞뒤 문맥과 책 전체에서의 위치를 설명하십시오. 개역개정, 마소라 본문(MT/BHS), 칠십인역(LXX) 사이의 장절 번호 차이와 본문의 위치(장 번호, 절 순서)만 표로 정리하고, 판본별 절 번호 차이를 본문에서 언급했다면 반드시 표에도 넣으십시오. 이문의 내용은 3단계에서 다룹니다. 이어서 제공된 자료 가운데 이 본문을 다루는 자료의 목록을 '자료 번호(자료1, 자료2…), 저자, 자료명, 다루는 범위'로 빠짐없이 만드십시오. 본문 자료(개역개정·원문 파일)는 이 목록에 넣지 마십시오. 이후 단계에서는 이 번호와 저자명을 함께 쓰고 번호를 새로 매기지 않으며, 이 목록에 있는 자료만 출처로 쓰고, 목록에 없는 문헌은 '자료 외'로 표시합니다. 학자의 분류는 2단계에서 다룹니다. 끝으로 목록을 확인한 뒤, 자료에 실제로 빠져 있는 주요 해석 관점이 있으면 지적하십시오.",
+    nt:"[해당 본문]의 문학 단위 경계를 형식 표지(도입·종결 표현, 화자·청자 전환, 장르 전환, 수미상관)로 확정하십시오. 장 구분과 실제 문학 단위가 다르면 그 사실과 학자별 경계 설정의 차이를 밝히고, 앞뒤 문맥과 책 전체에서의 위치를 설명하십시오. 개역개정과 헬라어 원문(NA28) 사이의 절 구분 차이와 병행 본문(공관 병행, 같은 저자의 병행 단락)의 위치만 표로 정리하십시오. 이문의 내용은 3단계에서 다룹니다. 이어서 제공된 자료 가운데 이 본문을 다루는 자료의 목록을 '자료 번호(자료1, 자료2…), 저자, 자료명, 다루는 범위'로 빠짐없이 만드십시오. 본문 자료(개역개정·원문 파일)는 이 목록에 넣지 마십시오. 이후 단계에서는 이 번호와 저자명을 함께 쓰고 번호를 새로 매기지 않으며, 이 목록에 있는 자료만 출처로 쓰고, 목록에 없는 문헌은 '자료 외'로 표시합니다. 학자의 분류는 2단계에서 다룹니다. 끝으로 목록을 확인한 뒤, 자료에 실제로 빠져 있는 주요 해석 관점이 있으면 지적하십시오." },
+  { id:2, cat:"2단계", title:"해석 지형과 난제 (판정 보류)",
+    ot:"제공된 자료에서 [해당 본문]을 다룬 학자들을 해석학적 전제와 방법에 따라 분류하십시오. 분류 기준을 먼저 밝히되, 언약 이해(예: 언약신학, 세대주의 등)도 기준에 포함하십시오. " + STAGE2_HEAD + "해석 난제뿐 아니라 본문 비평 난제(이문 선택)와 신약 인용 난제(인용 형태, 성취 방식)도 후보로 검토하십시오. " + STAGE2_TAIL,
+    nt:"제공된 자료에서 [해당 본문]을 다룬 학자들을 해석학적 전제와 비평적 입장에 따라 분류하십시오. 분류 기준을 먼저 밝히십시오. " + STAGE2_HEAD + "해석 난제뿐 아니라 본문 비평 난제(이문 선택)와 구약 인용 난제(인용 형태, 원래 문맥과의 관계)도 후보로 검토하십시오. " + STAGE2_TAIL },
+  { id:3, cat:"3단계", title:"본문 비평", flags:true, handoff:true, verify:true, cross:true,
+    ot:"[해당 본문]의 본문 비평 쟁점을 BHS/BHQ 비평장치를 기준으로 정리하십시오. 1단계에서 정리한 장 위치와 분량은 반복하지 마십시오. 절 순서 차이뿐 아니라 절 단위의 내용 이문을 본문 전체에서 검토해 표로 정리하고, 케티브/케레를 빠짐없이 다루십시오. 필요하면 사해사본, 사마리아오경, 타르굼, 불가타도 포함하십시오. 특정 사본이 어떤 절을 보존하는지, LXX와 신약의 헬라어 본문이 어떤 문구인지는 제공된 원문이나 자료로 확인한 경우에만 적고, 확인하지 못하면 '원문 확인 필요'로 표시하십시오. MT와 LXX의 절 대응표는 제공된 LXX 본문의 장절 번호로 확인하고, 신약의 인용 문구를 LXX 문구로 적지 마십시오. 이문의 원인(필사 오류, 번역자의 해석, 다른 대본)은 자료에 근거가 있을 때만 제시하고, 견해가 갈리면 견해별로 제시하십시오. 이 본문을 인용하는 신약 구절을 각각 들어, 그 인용이 MT와 LXX 가운데 어느 쪽에 가까운지, 신약 저자가 바꾼 부분이 있는지 밝히십시오. 마지막으로 각 이문이 해석, 구조, 신학에 실제로 영향을 주는지 평가하십시오.",
+    nt:"[해당 본문]의 본문 비평 쟁점을 NA28/UBS5 비평장치를 기준으로 정리하십시오. 1단계에서 정리한 내용은 반복하지 마십시오. 주요 이문과 사본 증거(파피루스, 대문자 사본, 소문자 사본, 역본, 교부 인용)를 제시하고, 외적 증거와 내적 증거를 평가하며, UBS 확실성 등급을 밝히십시오. 사본 증거와 헬라어·히브리어 문구는 자료로 확인한 경우에만 적고, 확인하지 못하면 '원문 확인 필요'로 표시하십시오. 이문의 원인은 자료에 근거가 있을 때만 제시하십시오. 구약 인용이 있으면 LXX 형태인지 MT 형태인지, 신약 저자가 바꾼 부분이 있는지 표시하십시오. 마지막으로 각 이문이 해석, 구조, 신학에 실제로 영향을 주는지 평가하십시오." },
+  { id:4, cat:"4단계", title:"번역 대조와 핵심 어휘", handoff:true, verify:true, cross:true, crossRequired:true, literal:true,
+    ot:"개역개정을 MT와 대조하여 [해당 본문]의 번역에서 사라지거나 바뀐 뉘앙스(동사 형태, 어순, 반복어, 언어유희, 같은 어근의 연쇄)를 지적하십시오. 일부 절만 다룬다면 고른 기준을 밝히십시오. 대조에 쓰는 개역개정 문구는 제공된 본문에서 그대로 옮기십시오. 이어서 신학적으로 중요한 핵심 단어를 골라 어근, 이 본문에서의 형태, 같은 책과 정경 안의 용례, 문맥적 함의를 표로 정리하십시오. 낱말의 의미는 실제 용례로 정하고, 어원만으로 의미를 단정하는 어원적 오류(예: 어근이 같은 다른 낱말의 뜻을 끌어오는 것)를 피하십시오. 학자가 어원으로 의미를 주장했으면 그 견해로만 보고하고, 의미를 정하는 근거로 쓰지 마십시오. 동사 형태의 시제적 의미는 형태만이 아니라 구문과 문맥(예: 와우 연속법, 예언적 완료, 조건문의 귀결절)으로 판단하고, 개역개정의 번역을 '손실'로 평가할 때는 원문 문법의 근거를 대십시오. 용례로 다른 구절을 인용할 때 그 구절의 개역개정 번역어를 논증에 맞게 바꾸지 마십시오. 이후 단계가 이 어휘 분석을 전제로 삼으므로, 확실하지 않은 의미 주장은 '확인 필요'로 표시하십시오.",
+    nt:"개역개정을 NA28과 대조하여 [해당 본문]의 번역에서 사라지거나 바뀐 뉘앙스(시제·태·법, 분사 구문, 어순, 접속사와 논리 연결어, 반복어)를 지적하십시오. 일부 절만 다룬다면 고른 기준을 밝히십시오. 대조에 쓰는 개역개정 문구는 제공된 본문에서 그대로 옮기십시오. 이어서 신학적으로 중요한 핵심 단어를 골라 어근, 이 본문에서의 형태, 같은 저자와 LXX·신약의 용례, 문맥적 함의를 표로 정리하십시오. 낱말의 의미는 실제 용례로 정하고, 어원만으로 의미를 단정하는 어원적 오류(예: 어근이 같은 다른 낱말의 뜻을 끌어오는 것)를 피하십시오. 학자가 어원으로 의미를 주장했으면 그 견해로만 보고하고, 의미를 정하는 근거로 쓰지 마십시오. 시제·태·법의 의미는 형태만이 아니라 구문과 문맥으로 판단하고, 개역개정의 번역을 '손실'로 평가할 때는 원문 문법의 근거를 대십시오. 용례로 다른 구절을 인용할 때 그 구절의 개역개정 번역어를 논증에 맞게 바꾸지 마십시오. 이후 단계가 이 어휘 분석을 전제로 삼으므로, 확실하지 않은 의미 주장은 '확인 필요'로 표시하십시오." },
+  { id:5, cat:"5단계", title:"문학 구조, 중심과 정점", module:"structure", handoff:true,
+    ot:"1단계에서 확정한 경계를 따라 [해당 본문]의 장르와 하위 양식을 판별하고, 장르에 맞는 도구로 구조를 분석하십시오. 반복어, 수미상관, 교차대칭, 평행법, 플롯 가운데 본문에서 실제로 확인되는 장치만 층위별(본문 전체, 단락)로 제시하십시오. 주요 반복어는 본문 전체에서 나오는 위치를 모두 밝히고, 교차대칭과 수미상관은 대응하는 구절과 원어 단어를 짝지어 제시하십시오. 수미상관은 해당 단위의 처음과 끝에 놓인 대응만 그렇게 부르십시오. 학자가 제안한 구조에는 출처를 다십시오. 구조상의 중심과 논리적·서사적 정점을 구분하되, 중심은 제시한 구조도의 중심 요소와 일치시키고 어느 층위의 중심인지 밝히십시오. 구조도에 없는 범위를 중심으로 지정하지 마십시오. 중심을 지정한 뒤 그것이 구조도의 몇 번째 요소인지 적고, 중심과 정점이 같은 범위이면 그 이유를 밝히십시오. 교차대칭은 짝마다 공유하는 원어 단어를 적고, 공유어가 없는 짝은 빼거나 교차대칭 대신 평행 구조로 설명하십시오. 둘의 관계와 이 구조가 원래 청중에게 의도한 수사학적 효과를 규명하십시오. 3단계에서 확인한 판본 차이가 구조 판단에 영향을 주면 명시하십시오.",
+    nt:"1단계에서 확정한 경계를 따라 [해당 본문]의 장르와 하위 양식을 판별하고, 장르에 맞는 도구로 구조를 분석하십시오. 반복어, 수미상관, 교차대칭, 논증 구조, 내러티브 흐름 가운데 본문에서 실제로 확인되는 장치만 층위별(본문 전체, 단락)로 제시하십시오. 주요 반복어는 본문 전체에서 나오는 위치를 모두 밝히고, 교차대칭과 수미상관은 대응하는 구절과 원어 단어를 짝지어 제시하십시오. 수미상관은 해당 단위의 처음과 끝에 놓인 대응만 그렇게 부르십시오. 학자가 제안한 구조에는 출처를 다십시오. 구조상의 중심과 논리적·서사적 정점을 구분하되, 중심은 제시한 구조도의 중심 요소와 일치시키고 어느 층위의 중심인지 밝히십시오. 구조도에 없는 범위를 중심으로 지정하지 마십시오. 중심을 지정한 뒤 그것이 구조도의 몇 번째 요소인지 적고, 중심과 정점이 같은 범위이면 그 이유를 밝히십시오. 교차대칭은 짝마다 공유하는 원어 단어를 적고, 공유어가 없는 짝은 빼거나 교차대칭 대신 평행 구조로 설명하십시오. 둘의 관계와 이 구조가 원래 독자에게 의도한 수사학적 효과를 규명하십시오. 3단계에서 확인한 이문이 구조 판단에 영향을 주면 명시하십시오." },
+  { id:6, cat:"6단계", title:"역사·사회문화 배경과 시대착오 경계", module:"background", handoff:true,
+    ot:"[해당 본문]의 역사적 좌표(연대, 사건, 청중), 지리, 사회 제도와 관습, 고대 근동(ANE) 문헌의 병행 자료를 규명하십시오. 학자마다 위치나 연대 비정이 다르면 확정하지 말고 그 차이를 그대로 제시하십시오. 이어서 4단계에서 정리한 핵심 어휘와 본문의 주요 이미지가 원래 청중에게 무엇을 뜻했는지 밝히십시오. 끝으로 '본문 요소, 시대착오적 독법, 역사적 경계선, 근거'를 표로 정리하십시오. 여기서 시대착오란 후대의 개념(신약과 교리의 개념, 현대의 사고방식과 제도)을 원래 청중의 이해에 투사하는 것을 말합니다. 원래 청중에게 뜻한 바를 서술할 때는 성령, 중생, 교회처럼 후대의 용어를 쓰지 마십시오. '역사적 경계선' 열에는 2단계 난제의 특정 견해를 사실처럼 쓰지 마십시오. 교리적 오독의 점검은 9단계에서 다룹니다.",
+    nt:"[해당 본문]의 역사적 좌표(연대, 저자와 수신자, 상황), 지리, 1세기 그레코-로만 세계와 제2성전 유대교의 사회·정치·종교적 배경, 병행 문헌을 규명하십시오. 학자마다 연대나 상황 재구성이 다르면 확정하지 말고 그 차이를 그대로 제시하십시오. 이어서 4단계에서 정리한 핵심 어휘와 본문의 주요 이미지가 원래 독자에게 무엇을 뜻했는지 밝히십시오. 끝으로 '본문 요소, 시대착오적 독법, 역사적 경계선, 근거'를 표로 정리하십시오. 여기서 시대착오란 후대의 개념(후대 교리의 개념, 현대의 사고방식과 제도)을 원래 독자의 이해에 투사하는 것을 말합니다. '역사적 경계선' 열에는 2단계 난제의 특정 견해를 사실처럼 쓰지 마십시오. 교리적 오독의 점검은 9단계에서 다룹니다." },
+  { id:7, cat:"7단계", title:"정경 상호텍스트", handoff:true, verify:true,
+    ot:"[해당 본문]과 정경 안의 다른 본문 사이의 연결을 같은 책 안, 오경·역사서·시가서·예언서, 신약으로 나누어 표로 제시하십시오. 연결 방식은 '인용, 암시, 모티프' 가운데 하나로만 표시하십시오. 인용은 인용 공식이 있거나 문구가 축자적으로 일치하는 경우만 해당합니다. 신약 구절이 다른 구약 본문을 인용하고 있으면 그 출처를 밝히고 [해당 본문]과의 관계는 암시로 표시하며, 두 본문이 같은 속담이나 전승을 각각 인용한 경우는 모티프로 표시하십시오. 어휘 일치 열에는 양쪽 본문에 실제로 있는 원어 단어만 적고, 일치하는 단어가 없으면 '주제적 연결'로, 확인하지 못했으면 '어휘 확인 필요'로 표시하십시오. 연결마다 강도(강함, 중간, 약함)와 그 이유를 적고, 영향의 방향(어느 본문이 먼저인지)이 논쟁 중이면 그 사실을 밝히십시오. 이 단계에서는 연결의 존재와 형태만 다루고, 신약에서의 성취 의미는 8단계에서 다루십시오.",
+    nt:"[해당 본문]과 정경 안의 다른 본문 사이의 연결을 표로 제시하십시오. 구약 인용·암시의 출처와 형태(LXX 형태인지 MT 형태인지), 인용된 구약의 원래 문맥, 같은 저자의 다른 문서, 공관 병행을 다루십시오. 연결 방식은 '인용, 암시, 모티프' 가운데 하나로만 표시하십시오. 인용은 인용 공식이 있거나 문구가 축자적으로 일치하는 경우만 해당합니다. 신약 구절이 다른 구약 본문을 인용하고 있으면 그 출처를 밝히고 [해당 본문]과의 관계는 암시로 표시하며, 두 본문이 같은 속담이나 전승을 각각 인용한 경우는 모티프로 표시하십시오. 어휘 일치 열에는 양쪽 본문에 실제로 있는 원어 단어만 적고, 일치하는 단어가 없으면 '주제적 연결'로, 확인하지 못했으면 '어휘 확인 필요'로 표시하십시오. 연결마다 강도(강함, 중간, 약함)와 그 이유를 적고, 영향의 방향이 논쟁 중이면 그 사실을 밝히십시오. 이 단계에서는 연결의 존재와 형태만 다루고, 그리스도 안에서의 성취 의미는 8단계에서 다루십시오." },
+  { id:8, cat:"8단계", title:"구속사와 기독론 (연결 등급제)", module:"christ", handoff:true,
+    ot:"7단계에서 찾은 연결을 바탕으로, [해당 본문]의 언약 흐름(앞선 언약들과의 관계)과 모형이 그리스도의 인격과 사역에서 어떻게 성취되는지 밝히십시오. 먼저 본문 자체가 말하지 않는 것(한계)을 밝히십시오. 이어서 성육신, 고난과 죽음, 부활과 승천, 성령 강림, 재림을 차례로 검토하되, 본문이 실제로 열어 주는 연결이 없으면 '연결 없음'이라고 쓰십시오. " + GRADES + " " + STAGE8_TAIL_OT,
+    nt:"7단계에서 찾은 연결을 바탕으로, [해당 본문]에서 그리스도께서 이루신 일(직설법)과 독자에게 주어진 명령(명령법)의 관계를 본문의 논리 연결어로 규명하십시오. 먼저 본문 자체가 말하지 않는 것(한계)을 밝히십시오. 이어서 본문의 구약 배경이 그리스도의 인격과 사역(성육신, 고난과 죽음, 부활과 승천, 성령 강림, 재림) 안에서 어떻게 재해석되는지 차례로 검토하되, 본문이 실제로 열어 주는 연결이 없으면 '연결 없음'이라고 쓰십시오. " + GRADES + " '이미와 아직'의 긴장 속에서 그리스도를 삶의 동력으로 조명하십시오. 마지막으로 이 본문을 윤리적 훈계로 축소하는 독법과 복음 중심 독법을 표로 대조하고, 복음 중심 독법에서 순종과 율법이 차지하는 자리도 한 행으로 밝히십시오." },
+  { id:9, cat:"9단계", title:"난제 판정과 교리 점검", verify:true, cross:true, literal:true,
+    ot: STAGE9_HEAD + CONFESSIONS + " 이어서 이 본문에서 실제로 생길 위험이 있는 오류(예: 도덕주의, 율법주의, 반율법주의, 완전주의, 기복주의, 대체주의와 그 반대)만 골라, 그 위험이 생기는 절과 함께 지적하십시오. 개혁주의 안에서도 견해가 갈리는 지점은 그대로 밝히십시오.",
+    nt: STAGE9_HEAD + CONFESSIONS + " 이어서 이 본문에서 실제로 생길 위험이 있는 오류(예: 도덕주의, 율법주의, 반율법주의, 완전주의, 기복주의, 주술적 오용)만 골라, 그 위험이 생기는 절과 함께 지적하십시오. 개혁주의 안에서도 견해가 갈리는 지점은 그대로 밝히십시오." },
+  { id:10, cat:"10단계", title:"석의 명제, 설교, 청중 적용", verify:true, pulpit:true, audience:true,
+    ot: buildStage10, nt: buildStage10 },
+  { id:11, cat:"선택", title:"원고 검증 (설교문·묵상·교재·슬라이드)", optional:true, aud:true,
+    ot:"아래 원고를 [해당 본문]에 대한 이 연구의 단계별 결과에 비추어 평가하십시오. 다음을 점검하십시오: ① 성경 인용의 축자 정확성(제공된 개역개정 본문과 대조), ② 사실과 출처, ③ 본문의 정점 반영 여부, ④ 복음 중심성과 도덕주의, ⑤ 선택한 청중([청중])에 대한 적합성, ⑥ 연구 과정에서 바로잡은 오류나 '확인 필요'로 남은 해석이 원고에 들어 있는지. 결과를 '중요도, 위치, 현재, 수정안, 근거' 표로 정리하십시오.\n\n[원고를 여기에 붙여 넣으십시오]",
+    nt:"아래 원고를 [해당 본문]에 대한 이 연구의 단계별 결과에 비추어 평가하십시오. 다음을 점검하십시오: ① 성경 인용의 축자 정확성(제공된 개역개정 본문과 대조), ② 사실과 출처, ③ 본문의 정점 반영 여부, ④ 복음 중심성과 도덕주의, ⑤ 선택한 청중([청중])에 대한 적합성, ⑥ 연구 과정에서 바로잡은 오류나 '확인 필요'로 남은 해석이 원고에 들어 있는지. 결과를 '중요도, 위치, 현재, 수정안, 근거' 표로 정리하십시오.\n\n[원고를 여기에 붙여 넣으십시오]" }
+];
 
-        function escapeRegExp(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
+// ───────────────────────── 6. 상태와 렌더링 ─────────────────────────
+let currentMode = 'auto';
+let lastAutoGenre = null;
+let currentPrompts = [];
 
-        function updateAllPrompts() {
-            const passageInput = document.getElementById('passage-input');
-            const passage = passageInput.value.trim() || "[해당 본문]";
-            const testament = detectTestament(passageInput.value.trim());
+function setMode(mode) {
+  currentMode = mode;
+  ['auto','ot','nt'].forEach(m => {
+    document.getElementById('mode-'+m).className = (m === mode)
+      ? "px-3 py-1.5 rounded-lg bg-white text-blue-600 shadow-sm transition-all font-bold"
+      : "px-3 py-1.5 rounded-lg transition-all text-slate-500 hover:text-slate-800";
+  });
+  updateAll();
+}
 
-            const badge = document.getElementById('testament-badge');
-            const statusText = document.getElementById('status-text');
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
-            if (passageInput.value.trim() === "") {
-                badge.className = "flex items-center justify-center min-w-[160px] px-4 py-3 rounded-xl font-bold text-sm bg-slate-100 text-slate-500";
-                statusText.innerText = "본문 입력 대기 중";
-            } else if (testament === 'OT') {
-                badge.className = "flex items-center justify-center min-w-[160px] px-4 py-3 rounded-xl font-bold text-sm badge-ot";
-                statusText.innerText = "구약(OT) 석의 가동";
-            } else {
-                badge.className = "flex items-center justify-center min-w-[160px] px-4 py-3 rounded-xl font-bold text-sm badge-nt";
-                statusText.innerText = "신약(NT) 석의 가동";
-            }
+function buildGenreSelect(testament, autoGenre) {
+  const sel = document.getElementById('genre-select');
+  const prev = sel.value;
+  const autoLabel = autoGenre ? "자동: " + GENRES[autoGenre].label : "자동 (권을 감지하지 못함)";
+  let html = `<option value="auto">${escapeHtml(autoLabel)}</option><option value="none">모듈 사용 안 함</option>`;
+  Object.entries(GENRES).filter(([, g]) => g.t === testament)
+    .forEach(([k, g]) => { html += `<option value="${k}">${escapeHtml(g.label)}</option>`; });
+  sel.innerHTML = html;
+  // 이전 선택이 현재 구분에 존재하면 유지
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev; else sel.value = "auto";
+}
 
-            renderCards(passage, testament);
-        }
+function resolveGenre(testament, book) {
+  const v = document.getElementById('genre-select').value;
+  if (v === "none") return null;
+  if (v === "auto" || !v) {
+    if (book && GENRES[book[2]] && GENRES[book[2]].t === testament) return book[2];
+    return null;
+  }
+  return GENRES[v] && GENRES[v].t === testament ? v : null;
+}
 
-        function copyToClipboard(text) {
-            const tempInput = document.createElement("textarea");
-            tempInput.value = text;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            
-            const toast = document.getElementById('toast');
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 2000);
-        }
+function storageKey(passage) { return "exegesis-v7::" + passage; }
+function fieldKey(passage, id) { return (id === 'nkrv' ? "exegesis-v7-nkrv::" : "exegesis-v7-" + id + "::") + passage; }
+function buildTextFields() {
+  document.getElementById('text-fields').innerHTML = TEXT_FIELDS.map(f => `
+    <div>
+      <label for="text-${f.id}" id="label-${f.id}" class="block text-xs font-bold text-slate-500 mb-1.5"></label>
+      <textarea id="text-${f.id}" rows="3" dir="auto" oninput="saveField('${f.id}'); refreshPrompts()"
+        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none text-sm leading-relaxed"></textarea>
+    </div>`).join("");
+}
+const fieldOrigin = {};
+function bookId(passage) { const b = findBook(passage || ""); return b ? b[0] : null; }
+function saveField(id) {
+  const passage = document.getElementById('passage-input').value.trim();
+  if (!passage) return;
+  fieldOrigin[id] = passage;
+  try { localStorage.setItem(fieldKey(passage, id), document.getElementById('text-' + id).value); } catch (e) {}
+}
+let lastFieldPassage = null;
+function loadFieldsFor(passage) {
+  if (passage === lastFieldPassage) return;
+  lastFieldPassage = passage;
+  if (!passage) return;
+  TEXT_FIELDS.forEach(f => {
+    let v = null;
+    try { v = localStorage.getItem(fieldKey(passage, f.id)); } catch (e) {}
+    const ta = document.getElementById('text-' + f.id);
+    if (v !== null) { ta.value = v; fieldOrigin[f.id] = passage; }
+    else if (fieldOrigin[f.id] && bookId(fieldOrigin[f.id]) !== bookId(passage)) { ta.value = ""; delete fieldOrigin[f.id]; }
+  });
+  let a = null, m = null;
+  try { a = localStorage.getItem("exegesis-v7-aud::" + passage); m = localStorage.getItem("exegesis-v7-audmemo::" + passage); } catch (e) {}
+  if (a && AUDIENCES[a]) currentAudience = a;
+  if (m !== null) document.getElementById('audience-memo').value = m;
+}
+let currentAudience = 'all';
+function saveAudience() {
+  const passage = document.getElementById('passage-input').value.trim();
+  if (!passage) return;
+  try {
+    localStorage.setItem("exegesis-v7-aud::" + passage, currentAudience);
+    localStorage.setItem("exegesis-v7-audmemo::" + passage, document.getElementById('audience-memo').value);
+  } catch (e) {}
+}
+function setAudience(a) { currentAudience = a; saveAudience(); refreshPrompts(); }
+function renderAudienceButtons() {
+  document.getElementById('audience-buttons').innerHTML = Object.entries(AUDIENCES).map(([k, v]) =>
+    `<button onclick="setAudience('${k}')" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${k === currentAudience ? 'bg-fuchsia-700 text-white border-fuchsia-700' : 'bg-white text-fuchsia-800 border-fuchsia-200 hover:border-fuchsia-500'}">${escapeHtml(v.label)}</button>`).join("");
+}
+function refreshPrompts() { updateAll(); }
+function loadProgress(passage) {
+  try { return JSON.parse(localStorage.getItem(storageKey(passage)) || "{}"); } catch (e) { return {}; }
+}
+function saveProgress(passage, data) {
+  try { localStorage.setItem(storageKey(passage), JSON.stringify(data)); } catch (e) { /* 저장 불가 환경에서는 무시 */ }
+}
+function resetProgress() {
+  const passage = document.getElementById('passage-input').value.trim();
+  if (!passage) return;
+  try { localStorage.removeItem(storageKey(passage)); } catch (e) {}
+  updateAll();
+}
+function toggleDone(id, checked) {
+  const passage = document.getElementById('passage-input').value.trim();
+  if (!passage) return;
+  const p = loadProgress(passage); p[id] = checked; saveProgress(passage, p);
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.toggle('done', checked);
+}
 
-        function renderCards(passage, testament) {
-            const grid = document.getElementById('prompt-grid');
-            grid.innerHTML = '';
+function updateAll() {
+  const raw = document.getElementById('passage-input').value.trim();
+  const passage = raw || "[해당 본문]";
+  const book = findBook(raw);
+  let testament;
+  if (currentMode === 'ot') testament = 'OT';
+  else if (currentMode === 'nt') testament = 'NT';
+  else testament = book ? book[1] : 'OT';
 
-            const exegesisPrompts = (testament === 'OT') ? otPrompts : ntPrompts;
+  // 배지
+  const badge = document.getElementById('testament-badge');
+  const status = document.getElementById('status-text');
+  const base = "flex items-center justify-center min-w-[180px] px-4 py-3 rounded-xl font-bold text-sm text-center ";
+  if (!raw) { badge.className = base + "bg-slate-100 text-slate-500"; status.innerText = "본문 입력 대기 중"; }
+  else {
+    badge.className = base + (testament === 'OT' ? "badge-ot" : "badge-nt");
+    const bookName = book ? book[4][0] : "권 미확인";
+    const mismatch = book && currentMode !== 'auto' && book[1] !== testament ? " · 수동 지정" : "";
+    status.innerText = `${testament === 'OT' ? '구약' : '신약'} · ${bookName}${mismatch}`;
+  }
 
-            exegesisPrompts.forEach(p => {
-                const updatedText = p.text.replace(/\[해당 본문\]/g, passage);
-                const card = document.createElement('div');
-                card.className = "prompt-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col";
-                
-                let displayText = updatedText;
-                if (passage !== "[해당 본문]" && passage !== "") {
-                    const safePassage = escapeRegExp(passage);
-                    displayText = updatedText.replace(new RegExp(safePassage, 'g'), `<span class="highlight-text">${passage}</span>`);
-                }
+  // 장르 선택 상자
+  const autoGenre = book && GENRES[book[2]] && GENRES[book[2]].t === testament ? book[2] : null;
+  buildGenreSelect(testament, autoGenre);
+  const genre = resolveGenre(testament, book);
+  const hint = document.getElementById('genre-hint');
+  hint.innerText = (book && (book[0] === 'exod' || book[0] === 'deut' || book[0] === 'num'))
+    ? "출애굽기·민수기·신명기는 단락 성격에 따라 '내러티브'와 '율법' 중에서 고르십시오."
+    : (book && book[0] === 'zech') ? "스가랴 1–6장의 환상 단락은 '묵시'를 고려하십시오." : "";
 
-                card.innerHTML = `
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="text-xs font-extrabold px-2.5 py-1 rounded-md ${testament === 'OT' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'} tracking-wide">
-                            ${p.category} ${testament === 'OT' ? '구약 석의' : '신약 석의'}
-                        </span>
-                        <button onclick="copyToClipboard(\`${updatedText}\`)" class="bg-slate-900 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md">
-                            복사
-                        </button>
-                    </div>
-                    <p class="text-slate-900 font-bold mb-3 text-base leading-snug">${p.title}</p>
-                    <div class="bg-slate-50 p-4 rounded-xl text-slate-600 text-sm leading-relaxed border border-slate-100 flex-grow">
-                        ${displayText}
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
+  // 권별 경고
+  const flags = book ? book[3].map(f => FLAGS[f]).filter(Boolean) : [];
+  const banner = document.getElementById('flag-banner');
+  if (flags.length) { banner.classList.remove('hidden'); banner.innerHTML = "<b>권별 경고 (1·3단계에 자동 첨부)</b><br>" + flags.map(escapeHtml).join("<br>"); }
+  else banner.classList.add('hidden');
 
-        updateAllPrompts();
-    </script>
+  loadFieldsFor(raw);
+  currentTestament = testament;
+  TEXT_FIELDS.forEach(f => {
+    const ta = document.getElementById('text-' + f.id);
+    document.getElementById('label-' + f.id).innerText = f.label[testament];
+    ta.placeholder = f.ph[testament];
+    ta.dir = (f.id === 'orig' && testament === 'OT') ? 'rtl' : 'auto';
+  });
+  const filled = TEXT_FIELDS.filter(f => document.getElementById('text-' + f.id).value.trim()).map(f => f.short[testament]);
+  document.getElementById('text-status').innerText = filled.length
+    ? `입력됨: ${filled.join(", ")} · 아래 '본문 전달 방식'에 따라 인용 기준이 됩니다.`
+    : "입력된 본문 없음 · 자료로 올린 본문이 인용 기준이 되며, 없으면 인용마다 '확인 필요'가 붙습니다. 개역개정만이라도 입력하기를 권합니다.";
+  renderAudienceButtons();
+  renderDepth();
+  loadSrcMax();
+  document.getElementById('delivery-select').value = currentDelivery;
+  document.getElementById('chunk-select').value = String(currentChunk);
+  document.getElementById('chunk-select').style.display = currentDelivery === 'split' ? '' : 'none';
+  document.getElementById('delivery-hint').innerText = DELIVERY_HINT[currentDelivery];
+  const pf = PLATFORM[document.getElementById('platform-select').value] || PLATFORM.notebooklm;
+  document.getElementById('platform-tip').innerText = pf.tip;
+  renderCards(raw, passage, testament, genre, flags);
+}
+
+function composePrompt(stage, passage, testament, genre, flags) {
+  const segs = [];
+  const short = currentDepth === 'short';
+  if (stage.handoff) segs.push({ kind: "handoff", text: short ? HANDOFF_SHORT : HANDOFF.replace("N단계", stage.id + "단계") });
+  const rawText = testament === 'OT' ? stage.ot : stage.nt;
+  segs.push({ kind: "main", text: (typeof rawText === 'function' ? rawText(testament) : rawText).replace(/\[해당 본문\]/g, passage).replace(/\[청중\]/g, AUDIENCES[currentAudience].label) });
+  if (!short && stage.literal && document.getElementById('literal-toggle').checked) segs.push({ kind: "literal", text: (stage.id === 4 ? LITERAL4 : LITERAL9)[testament].replace(/\[해당 본문\]/g, passage) });
+  if (stage.audience || stage.id === 10) { const memo = document.getElementById('audience-memo').value.trim(); if (memo) segs.push({ kind: "audience", text: "[청중 메모] " + memo + " — 이 메모를 일반적인 세대 특성보다 우선해 반영하십시오." }); }
+  if (stage.flags && flags.length) flags.forEach(f => segs.push({ kind: "flag", text: f }));
+  if (stage.module && genre && GENRES[genre][stage.module]) segs.push({ kind: "module", text: GENRES[genre][stage.module] });
+  if (stage.pulpit && document.getElementById('pulpit-toggle').checked) segs.push({ kind: "pulpit", text: PULPIT_SEG });
+  if (!stage.optional) segs.push({ kind: "check3", text: CHECK3 + ((stage.pulpit && document.getElementById('pulpit-toggle').checked) ? CHECK3_PULPIT : "") });
+  if (document.getElementById('rules-toggle').checked) segs.push({ kind: "rules", text: short ? RULE_REMINDER_SHORT : RULE_REMINDER });
+  return segs;
+}
+
+// ───────────────────────── v7.6: 답변 검사 ─────────────────────────
+function normKo(t) { return t.replace(/[\s.,;:!?·'"“”‘’()\[\]{}\-–—…「」『』<>*_\\|]/g, ""); }
+function stripMarks(t) { return t.normalize("NFD").replace(/[֑-ׇ̀-ͯ͂̓ͅ]/g, "").replace(/[־־]/g, " ").toLowerCase(); }
+function srcMaxKey() { return "exegesis-v7-srcmax::" + document.getElementById('passage-input').value.trim(); }
+function saveSrcMax() { try { localStorage.setItem(srcMaxKey(), document.getElementById('srcmax-input').value); } catch (e) {} }
+function loadSrcMax() { try { const v = localStorage.getItem(srcMaxKey()); document.getElementById('srcmax-input').value = v || ""; } catch (e) {} }
+function runCheck() {
+  const ans = document.getElementById('check-input').value;
+  const out = document.getElementById('check-result');
+  if (!ans.trim()) { out.innerHTML = ""; return; }
+  const val = id => document.getElementById('text-' + id).value;
+  const base = normKo(val('nkrv') + "\n" + val('rel'));
+  const lineOf = i => ans.slice(0, i).split("\n").length;
+  const rows = [];
+  const add = (type, i, target, fix) => rows.push([type, i < 0 ? "-" : lineOf(i), target, fix]);
+  // 자료 목록 자동 인식(1단계 답변)
+  const listed = [...ans.matchAll(/^[\s\-*•·]*자료\s?(\d{1,3})\s*[,，:.)]\s*\S/gm)].map(m => parseInt(m[1], 10));
+  if (listed.length >= 2) { document.getElementById('srcmax-input').value = Math.max(...listed); saveSrcMax(); }
+  // 1) 개역개정 인용
+  if (base) {
+    const spans = [];
+    const check = (q, s, e) => {
+      const tagged = /확인\s*필요/.test(ans.slice(e, e + 40));
+      const pieces = q.split(/…|\.\.\./).filter(p => normKo(p).length >= 4);
+      const bad = pieces.filter(p => !base.includes(normKo(p)));
+      if (!bad.length) return;
+      if (tagged) add("제공되지 않은 구절 인용 (규칙 ③)", s, "「" + q.slice(0, 60) + "」", "따옴표 인용을 지우고 장절만 남기십시오");
+      else add("제공된 개역개정에 없음 (오인용 또는 미제공 구절)", s, "「" + q.slice(0, 60) + "」", "다른 부분: " + bad.map(b => b.trim().slice(0, 25)).join(" / "));
+    };
+    for (const m of ans.matchAll(/「([^」\n]{2,400})」/g)) { spans.push([m.index, m.index + m[0].length]); check(m[1], m.index, m.index + m[0].length); }
+    for (const m of ans.matchAll(/["“]([^"”\n]{6,300})["”]/g)) {
+      if (spans.some(([a, b]) => m.index >= a && m.index < b)) continue;
+      if (!/[가-힣]{2}/.test(m[1])) continue;
+      // 표 칸·설명문 오인 방지: 칸 구분자, 장절 표기, 괄호, 빗금, 영문 단어가 든 것은 성경 인용으로 보지 않는다
+      if (/[|()\/]|\d+\s*:\s*\d+|[A-Za-z]{3,}/.test(m[1]) || m[1].length > 300) continue;
+      const ctx = ans.slice(Math.max(0, m.index - 30), m.index) + ans.slice(m.index + m[0].length, m.index + m[0].length + 30);
+      if (/\d{1,3}\s*:\s*\d{1,3}|\d{1,3}\s*절|개역개정|NKRV/.test(ctx)) check(m[1], m.index, m.index + m[0].length);
+    }
+  }
+  // 2) 쪽 범위
+  for (const m of ans.matchAll(/(?<![\d:])\d{1,4}\s*쪽?\s*[–\-~]\s*\d{1,4}\s*쪽/g)) add("쪽 범위를 쪽수처럼 표기", m.index, m[0], "그 내용이 실린 쪽이나 절 주석 위치로");
+  // 3) 자료 번호
+  const max = parseInt(document.getElementById('srcmax-input').value, 10);
+  if (max > 0) {
+    const seen = new Set();
+    for (const m of ans.matchAll(/자료\s?(\d{1,3})(?!\d)/g)) {
+      const n = parseInt(m[1], 10);
+      if (n > max && !seen.has(n)) { seen.add(n); add("자료 목록에 없는 번호", m.index, m[0], `1단계 목록은 자료1–자료${max}입니다. 저자를 확인해 바로잡거나 '자료 외'로`); }
+    }
+  }
+  // 4) 원어 낱말(제공 원문에 없는 것)
+  const origBase = stripMarks(val('orig') + " " + val('lxx'));
+  if (origBase.trim()) {
+    const miss = new Set();
+    for (const m of ans.matchAll(/[א-ת][א-ת֑-ׇ]{2,}|[Ͱ-Ͽἀ-῿]{3,}/g)) {
+      const w = stripMarks(m[0]).replace(/\s/g, "");
+      if (w.length >= 3 && !origBase.replace(/\s/g, "").includes(w)) miss.add(m[0]);
+    }
+    if (miss.size) add("제공된 원문에 없는 원어 낱말", -1, [...miss].slice(0, 8).join(", ") + (miss.size > 8 ? ` 외 ${miss.size - 8}개` : ""), "사전형(어근)이면 '(원문 확인 필요)' 표시를, 본문 인용이면 원문과 대조하십시오");
+  }
+  // 5) 깨진 문자
+  const broken = [...ans.matchAll(/[ ]|Ã.|Â|ð/g)];
+  if (broken.length) add("깨진 문자", broken[0].index, broken.slice(0, 5).map(m => m[0]).join(" "), "원문이나 자료에서 다시 옮기십시오");
+  if (!base) rows.unshift(["개역개정 미입력", "-", "", "위 입력란에 개역개정을 넣어야 인용을 대조할 수 있습니다"]);
+  // 같은 유형·같은 대상은 한 줄로 묶는다
+  const merged = [], idx = {};
+  rows.forEach(r => { const k = r[0] + "\u0000" + r[2]; if (k in idx) merged[idx[k]][4]++; else { idx[k] = merged.length; merged.push([...r, 1]); } });
+  const summary = {}; merged.forEach(r => summary[r[0]] = (summary[r[0]] || 0) + r[4]);
+  const shown = merged.slice(0, 40).map(r => [r[0], r[1] + (r[4] > 1 ? ` 외 ${r[4] - 1}곳` : ""), r[2], r[3]]);
+  rows.length = 0; shown.forEach(r => rows.push(r));
+  const head = Object.entries(summary).map(([k, v]) => `${k} ${v}`).join(" · ");
+  out.innerHTML = rows.length
+    ? `<p class="font-bold text-emerald-900 mb-2">${escapeHtml(head)}${merged.length > 40 ? " (앞 40종만 표시)" : ""}</p><div class="overflow-x-auto"><table class="w-full text-xs bg-white rounded-lg"><thead><tr class="text-left text-emerald-900"><th class="p-2">유형</th><th class="p-2">줄</th><th class="p-2">대상</th><th class="p-2">조치</th></tr></thead><tbody>${rows.map(r => `<tr class="border-t border-emerald-100">${r.map(c => `<td class="p-2 align-top">${escapeHtml(String(c))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
+    : `<p class="font-bold text-emerald-900">문제 없음 (인용·쪽 범위·자료 번호·깨진 문자 기준)</p>`;
+}
+
+function deliveryPanelHtml(passage) {
+  const filled = filledFields();
+  const btn = "bg-slate-700 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all";
+  if (!filled.length) return `<div class="mt-4 pt-4 border-t border-slate-700 text-xs text-amber-300">본문이 입력되지 않았습니다. 위 입력란에 개역개정만이라도 넣으십시오.</div>`;
+  if (currentDelivery === 'source') {
+    return `<div class="mt-4 pt-4 border-t border-slate-700">
+      <p class="text-xs font-bold text-slate-300 mb-2">본문 파일 · 내려받아 소스로 올린 뒤 시작 지침을 보내십시오</p>
+      <div class="flex flex-wrap gap-2">${filled.map(({ f }) => `<button onclick="downloadField('${f.id}')" class="${btn}">${escapeHtml(fileNameFor(f, passage))} 내려받기</button>`).join("")}</div></div>`;
+  }
+  if (currentDelivery === 'split') {
+    currentChunks = buildChunks(passage);
+    const extra = document.getElementById('text-rel').value.trim();
+    return `<div class="mt-4 pt-4 border-t border-slate-700">
+      <p class="text-xs font-bold text-slate-300 mb-2">자료 보내기 · 시작 지침 다음에 차례로 보내고, 마지막에 자료 확인을 보내십시오</p>
+      <div class="flex flex-wrap gap-2">${currentChunks.map((c, i) => `<button onclick="copyChunk(${i})" title="${c.length}자" class="${btn}">자료 ${i + 1}/${currentChunks.length}</button>`).join("")}
+      <button onclick="copyCheckMsg()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all">자료 확인</button>
+      ${extra ? `<button onclick="copyExtra()" class="${btn}" title="관련 구절이 필요한 단계(1·7단계 또는 ①·③단계)에서 보내십시오">관련 구절 [추가 자료]</button>` : ""}</div>
+      <p class="text-xs text-slate-400 mt-2">'자료 확인' 표의 절 수가 입력한 본문과 다르면, 붙여 넣기가 잘린 것입니다. 그 자료를 다시 보내십시오.</p></div>`;
+  }
+  return "";
+}
+function renderCards(raw, passage, testament, genre, flags) {
+  startPromptText = buildStartPrompt(passage);
+  document.getElementById('start-card').innerHTML = `
+    <div class="flex justify-between items-center mb-3 gap-2">
+      <span class="text-xs font-extrabold px-2.5 py-1 rounded-md bg-white text-slate-900 tracking-wide">연구 시작 지침 · 처음 한 번만</span>
+      <button onclick="copyStart()" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md">복사</button>
+    </div>
+    <p class="font-bold mb-2 text-base">새 대화(또는 새 노트북 채팅)를 시작할 때 맨 먼저 붙여 넣으십시오.</p>
+    <div class="bg-slate-800 p-4 rounded-xl text-slate-200 text-sm leading-relaxed">${escapeHtml(startPromptText).replace(/\n/g, "<br>")}</div>
+    <p class="text-xs text-slate-400 mt-3">AI가 '확인' 대신 본문 분석을 시작하면, 그 답은 버리고 1단계부터 진행하십시오. 대화를 새로 열었으면 시작 지침을 다시 붙여 넣으십시오.</p>
+    ${deliveryPanelHtml(passage)}
+    <div class="mt-4 pt-4 border-t border-slate-700">
+      <p class="text-xs font-bold text-slate-300 mb-2">후속 요청 · 어느 단계에서든 답변을 받은 뒤 필요할 때 붙여 넣으십시오</p>
+      <div class="flex flex-wrap gap-2">${FOLLOWUPS.map((f, i) => `<button onclick="copyFollowup(${i})" title="${escapeHtml(f.text)}" class="bg-slate-700 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all">${escapeHtml(f.label)}</button>`).join("")}</div>
+    </div>`;
+  const grid = document.getElementById('prompt-grid');
+  const grid2 = document.getElementById('prompt-grid-2');
+  grid.innerHTML = ''; grid2.innerHTML = '';
+  currentPrompts = [];
+  const showOptional = document.getElementById('optional-toggle').checked;
+  const progress = raw ? loadProgress(raw) : {};
+
+  const list = currentDepth === 'short' ? [...SHORT_STAGES, STAGES.find(x => x.id === 11)] : STAGES;
+  list.forEach(stage => {
+    if (stage.optional && !showOptional) return;
+    const segs = composePrompt(stage, passage, testament, genre, flags);
+    const plain = segs.map(s => s.text).join("\n\n");
+    currentPrompts.push({ id: stage.id, cat: stage.cat, optional: !!stage.optional, text: plain });
+
+    const segHtml = segs.map(s => {
+      let h = escapeHtml(s.text).replace(/\n/g, "<br>");
+      if (raw && s.kind === "main") {
+        const safe = escapeHtml(passage).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        h = h.replace(new RegExp(safe, 'g'), `<span class="highlight-text">${escapeHtml(passage)}</span>`);
+      }
+      const cls = { flag: "seg-flag", module: "seg-module", rules: "seg-rules", handoff: "seg-handoff", pulpit: "seg-pulpit", literal: "seg-literal", audience: "seg-pulpit", check3: "seg-check" }[s.kind] || "";
+      return cls ? `<div class="mt-3 p-3 rounded-lg text-xs ${cls}">${h}</div>` : `<div>${h}</div>`;
+    }).join("");
+
+    const done = !!progress[stage.id];
+    const card = document.createElement('div');
+    card.id = 'card-' + stage.id;
+    card.className = "prompt-card bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col"
+      + (stage.optional ? " optional-card border-2 border-slate-300" : "") + (done ? " done" : "");
+    const badgeCls = stage.optional ? 'bg-slate-200 text-slate-700'
+      : (testament === 'OT' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800');
+    card.innerHTML = `
+      <div class="flex justify-between items-center mb-3 gap-2">
+        <span class="text-xs font-extrabold px-2.5 py-1 rounded-md ${badgeCls} tracking-wide">
+          ${stage.cat} ${testament === 'OT' ? '구약 석의' : '신약 석의'}
+        </span>
+        <div class="flex items-center gap-2">
+          <label class="flex items-center gap-1 text-xs font-semibold text-slate-500 cursor-pointer" title="${raw ? '진행 표시' : '본문을 입력하면 진행 표시를 저장할 수 있습니다'}">
+            <input type="checkbox" ${done ? "checked" : ""} ${raw ? "" : "disabled"} onchange="toggleDone(${stage.id}, this.checked)" class="w-3.5 h-3.5 accent-blue-600">완료
+          </label>
+          <button onclick="copyStage(${stage.id})" class="bg-slate-900 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md">복사</button>
+        </div>
+      </div>
+      <p class="text-slate-900 font-bold mb-3 text-base leading-snug">${escapeHtml(stage.title)}</p>
+      <div class="bg-slate-50 p-4 rounded-xl text-slate-600 text-sm leading-relaxed border border-slate-100 flex-grow">${segHtml}</div>
+      ${stage.verify ? `<div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+        <span class="text-xs font-bold ${stage.crossRequired ? 'text-red-700' : 'text-blue-700'}">${stage.crossRequired ? '교차 검증 필수 권장 (문법 판단)' : stage.cross ? '점검과 교차 검증 권장' : '인용·표기 점검 권장'}</span>
+        <button onclick="copyCheck('verify')" title="${escapeHtml(VERIFY.text)}" class="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 px-3 py-1 rounded-lg text-xs font-bold transition-all">${VERIFY.label}</button>
+        <button onclick="copyCheck('cross')" title="${escapeHtml(CROSS.text)}" class="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 px-3 py-1 rounded-lg text-xs font-bold transition-all">${CROSS.label}</button>
+      </div>` : ""}`;
+    const lower = currentDepth === 'short' ? (stage.id === 104 || stage.optional) : stage.id >= 10;
+    (lower ? grid2 : grid).appendChild(card);
+  });
+}
+
+// ───────────────────────── 7. 복사 ─────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg; t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 2000);
+}
+function writeClipboard(text, msg) {
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta); showToast(msg);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => showToast(msg), fallback);
+  } else fallback();
+}
+function copyStage(id) {
+  const p = currentPrompts.find(x => x.id === id);
+  if (p) writeClipboard(p.text, "복사 완료! 채팅창에 붙여넣으세요.");
+}
+function copyFollowup(i) { writeClipboard(FOLLOWUPS[i].text, "'" + FOLLOWUPS[i].label + "' 요청 복사 완료!"); }
+function copyCheck(kind) { const f = kind === 'verify' ? VERIFY : CROSS; writeClipboard(f.text, "'" + f.label + "' 요청 복사 완료!"); }
+function copyStart() { writeClipboard(startPromptText, "시작 지침 복사 완료!"); }
+function copyAll() {
+  const all = "━━ 연구 시작 지침 ━━\n" + startPromptText + "\n\n" + currentPrompts.filter(p => !p.optional)
+    .map(p => `━━ ${p.cat} ━━\n${p.text}`).join("\n\n");
+  writeClipboard(all, currentDepth === 'short' ? "시작 지침과 ①–④단계 전체 복사 완료!" : "시작 지침과 1–10단계 전체 복사 완료!");
+}
+
+buildTextFields();
+setMode('auto');
+</script>
 </body>
 </html>
