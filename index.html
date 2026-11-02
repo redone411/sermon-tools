@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>성경 본문 석의 툴킷 v7.6</title>
+    <title>성경 본문 석의 툴킷 v8.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
@@ -23,21 +23,30 @@
         .seg-pulpit { background: #fdf4ff; border: 1px solid #f5d0fe; color: #86198f; }
         .seg-literal { background: #ecfeff; border: 1px solid #a5f3fc; color: #155e75; }
         .seg-check { background: #fefce8; border: 1px solid #fde047; color: #854d0e; }
+        .seg-stop { background: #fef2f2; border: 2px solid #fca5a5; color: #991b1b; font-weight: 600; }
+        .tab-btn { white-space: nowrap; }
+        .tab-btn.active { background: #0f172a; color: #fff; }
+        textarea, input, select { max-width: 100%; }
+        .break-anywhere { overflow-wrap: anywhere; word-break: break-word; }
     </style>
 </head>
 <body class="p-4 md:p-10">
     <div class="max-w-5xl mx-auto">
         <!-- 헤더 -->
         <header class="mb-10 text-center">
-            <div class="inline-block bg-slate-900 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3">v7.6 Text → Form → World → Canon → Christ → Verdict</div>
+            <div class="inline-block bg-slate-900 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3">v8.0 Text → Form → World → Canon → Christ → Verdict · 검증 · 하브루타</div>
             <h1 class="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">성경 본문 석의 툴킷</h1>
-            <p class="text-slate-600 text-base">본문 확정에서 판정·선포까지 정밀 10단계 또는 축약 4단계 석의 프롬프트를 생성합니다.<br class="hidden md:block">장르 모듈과 권별 경고가 해당 단계에 자동으로 덧붙습니다.</p>
+            <p class="text-slate-600 text-base">본문 확정에서 판정·선포까지 정밀 10단계 또는 축약 4단계 석의 프롬프트를 생성합니다.<br class="hidden md:block">장르 모듈과 권별 경고가 해당 단계에 자동으로 덧붙습니다.<br class="hidden md:block">v8.0에는 확인 지점·증거 점검표·독립 검증을 묶은 ‘검증’과, 묻고 답하며 배우는 ‘하브루타’가 더해졌습니다.</p>
         </header>
 
         <!-- 입력 및 설정 카드 -->
         <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 mb-6">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                <label for="passage-input" class="block text-sm font-bold text-slate-700">연구할 성경 본문 입력</label>
+                <div class="flex flex-wrap items-center gap-2">
+                    <label for="passage-input" class="block text-sm font-bold text-slate-700">연구할 성경 본문 입력</label>
+                    <button onclick="loadExample()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">예시 불러오기: 마태복음 4:1-11</button>
+                    <span class="text-xs text-amber-700">헬라어 본문: SBLGNT (Society of Biblical Literature · Logos, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" class="underline">CC BY 4.0</a>)</span>
+                </div>
                 <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
                     <button id="mode-auto" onclick="setMode('auto')" class="px-3 py-1.5 rounded-lg">자동 감지</button>
                     <button id="mode-ot" onclick="setMode('ot')" class="px-3 py-1.5 rounded-lg">구약 (OT)</button>
@@ -72,6 +81,10 @@
                     <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
                         <input type="checkbox" id="optional-toggle" checked onchange="updateAll()" class="w-4 h-4 accent-blue-600">
                         선택 단계(원고 검증) 표시
+                    </label>
+                    <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                        <input type="checkbox" id="precomp-toggle" onchange="updateAll()" class="w-4 h-4 accent-blue-600">
+                        마지막 단계 끝에 ‘선이해 대조’ 넣기 <span class="text-slate-400 font-normal">(교재 가이드·공과를 쓸 때만 · 판정 뒤에 처음 엽니다)</span>
                     </label>
                     <div class="flex flex-wrap gap-2 mt-1">
                         <button id="copyall-btn" onclick="copyAll()" class="bg-slate-900 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-md">시작 지침 + 1–10단계 전체 복사</button>
@@ -134,6 +147,7 @@
             <div class="mt-5 pt-5 border-t border-slate-100">
                 <p class="text-xs font-bold text-slate-500 mb-1">본문 입력 (인용 기준이 됩니다)</p>
                 <p class="text-xs text-slate-400 mb-3">입력한 본문에서만 그대로 인용하게 합니다. 입력하지 않은 구절과 원문을 인용하면 AI가 '확인 필요'를 붙이도록 지시됩니다.</p>
+                <p class="text-xs text-slate-500 -mt-2 mb-3">내 본문으로 할 때도 원문 칸에 무료 공개 헬라어 본문(SBLGNT 등)을 함께 넣으십시오. 원어를 읽지 못해도 AI가 대조하는 근거가 됩니다.</p>
                 <div class="flex flex-wrap items-center gap-3 mb-3">
                     <label for="delivery-select" class="text-xs font-bold text-slate-500">본문 전달 방식</label>
                     <select id="delivery-select" onchange="saveDelivery(); updateAll()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 outline-none focus:border-blue-500">
@@ -155,6 +169,16 @@
             <div id="flag-banner" class="hidden mt-5 p-4 rounded-xl seg-flag text-sm leading-relaxed"></div>
         </div>
 
+        <!-- v8.0: 탭 -->
+        <nav class="sticky top-0 z-40 -mx-4 md:mx-0 px-4 md:px-0 py-2 mb-6 bg-slate-50/95 backdrop-blur">
+            <div class="flex gap-1 bg-white p-1 rounded-2xl border border-slate-200 shadow-sm text-sm font-bold text-slate-600">
+                <button id="tab-btn-study" onclick="setTab('study')" class="tab-btn flex-1 px-2 py-2.5 rounded-xl">석의 프롬프트</button>
+                <button id="tab-btn-verify" onclick="setTab('verify')" class="tab-btn flex-1 px-2 py-2.5 rounded-xl">검증</button>
+                <button id="tab-btn-havruta" onclick="setTab('havruta')" class="tab-btn flex-1 px-2 py-2.5 rounded-xl">하브루타</button>
+            </div>
+        </nav>
+
+        <section id="tab-study">
         <!-- 단계 흐름 안내 -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 mb-8 text-xs text-slate-600 leading-relaxed">
             <span id="flow-guide"></span>
@@ -169,36 +193,324 @@
             <p class="text-xs text-fuchsia-800 mb-3">한 세대를 골라 그 세대에 맞춘 개요와 적용을 받습니다. 여러 세대가 함께 듣는 설교라면 '전 세대'를 고르십시오.</p>
             <div class="flex flex-wrap gap-2 mb-3" id="audience-buttons"></div>
             <label for="audience-memo" class="block text-xs font-bold text-fuchsia-900 mb-1.5">청중 메모 (선택 · 교회와 회중의 실제 사정)</label>
+            <p class="text-xs text-fuchsia-800 mb-1.5">교재·공과·설교 원고를 쓰신다면 ‘선이해 대조’를 켜십시오. <button onclick="document.getElementById('precomp-toggle').checked = true; updateAll(); showToast('‘선이해 대조’를 켰습니다')" class="underline font-bold">지금 켜기</button></p>
             <textarea id="audience-memo" rows="2" oninput="saveAudience(); refreshPrompts()" placeholder="예: 농촌 교회, 70대 이상이 대부분 / 맞벌이 부부가 많은 신도시 교회 / 청소년부 수련회 저녁 집회"
                       class="w-full px-4 py-2.5 bg-white border border-fuchsia-200 rounded-xl focus:ring-4 focus:ring-fuchsia-100 outline-none text-sm"></textarea>
         </div>
 
         <div id="prompt-grid-2" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
 
-        <div id="check-panel" class="mt-8 p-6 rounded-2xl border-2 border-emerald-200 bg-emerald-50">
-            <p class="text-sm font-extrabold text-emerald-900 mb-1">답변 검사 (AI를 쓰지 않고 이 화면에서 대조)</p>
-            <p class="text-xs text-emerald-800 mb-3">AI의 답변을 붙여 넣으면, 위에 입력한 개역개정·원문과 따옴표 속 인용을 대조하고 쪽 범위 표기, 자료 목록에 없는 번호, 깨진 문자를 찾습니다. 문법·논증·등급은 검사하지 않습니다.</p>
-            <div class="flex flex-wrap items-center gap-3 mb-2">
-                <label for="srcmax-input" class="text-xs font-bold text-emerald-900">1단계 자료 수</label>
-                <input type="number" id="srcmax-input" min="0" placeholder="예: 10" oninput="saveSrcMax()" class="w-24 px-3 py-1.5 bg-white border border-emerald-200 rounded-lg text-sm">
-                <span class="text-xs text-emerald-800">1단계 답변을 검사하면 '자료1, 자료2…' 목록에서 자동으로 채웁니다.</span>
+        </section>
+
+        <!-- v8.0: 검증 탭 -->
+        <section id="tab-verify" class="hidden">
+            <div class="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 mb-6 text-sm text-slate-700 leading-relaxed">
+                <p class="text-base font-extrabold text-slate-900 mb-2">검증 — AI의 답을 사람이 확인하는 자리</p>
+                <p>석의 팀이 쓰는 확인 과정을 그대로 옮겼습니다. AI가 쓴 내용은 기본값이 ‘확인 필요’이고, ‘확인됨’은 본문·자료의 해당 문구나 구체적 쪽, 또는 검증·사용자의 확인이 있을 때만 씁니다. 아래 순서대로 쓰십시오: <b>확인 지점</b>에서 멈춰 판단 → <b>답변 검사</b>로 인용·표기 대조 → <b>증거 점검표</b> 작성 → <b>독립 검증</b> 1회.</p>
             </div>
-            <textarea id="check-input" rows="6" placeholder="AI 답변을 여기에 붙여 넣으십시오."
-                      class="w-full px-4 py-3 bg-white border border-emerald-200 rounded-xl text-sm"></textarea>
-            <div class="flex gap-2 mt-2">
-                <button onclick="runCheck()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold">검사</button>
-                <button onclick="document.getElementById('check-input').value=''; document.getElementById('check-result').innerHTML='';" class="bg-white border border-emerald-300 text-emerald-800 px-4 py-2 rounded-lg text-xs font-bold">지우기</button>
+
+            <!-- 확인 지점 -->
+            <div class="p-5 md:p-6 rounded-2xl seg-stop mb-6">
+                <p class="text-sm font-extrabold mb-1">확인 지점 ①②③ · 여기서는 AI가 멈추고 여러분이 판단합니다</p>
+                <p class="text-xs font-normal mb-3">‘석의 프롬프트’ 탭의 해당 단계 질문 끝에 ‘[확인 지점]’ 지시가 자동으로 붙어, AI가 요점을 보여 주고 여러분의 답을 기다리게 합니다. 카드 사이의 빨간 칸도 같은 내용입니다. 확인 지점 답은 따로 보내지 말고 다음 단계 카드의 칸에 적어 함께 복사하십시오.</p>
+                <div id="stop-list" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-normal"></div>
             </div>
-            <div id="check-result" class="mt-3 text-sm"></div>
-        </div>
+
+            <!-- 답변 검사 (v7.6 + 자동 검사 규칙) -->
+            <div id="check-panel" class="mb-6 p-5 md:p-6 rounded-2xl border-2 border-emerald-200 bg-emerald-50">
+                <p class="text-sm font-extrabold text-emerald-900 mb-1">답변 검사 (AI를 쓰지 않고 이 화면에서 대조)</p>
+                <p class="text-xs text-emerald-800 mb-3">AI의 답변을 붙여 넣으면, 위에 입력한 개역개정·원문과 따옴표 속 인용을 대조하고 쪽 범위·첫 쪽 표기, 자료 목록에 없는 번호, 원문 미제공 상태의 원어, 깨진 문자를 찾습니다. 단계를 고르면 단계별 규칙(3–8단계 결론·과잉 확신 표현, 8단계 ‘연결 없음’, 9단계 ‘증거 자기 승인 의심’)도 봅니다. 문법·논증·등급은 검사하지 않습니다.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label for="check-stage" class="block text-xs font-bold text-emerald-900 mb-1">검사할 답변의 단계</label>
+                        <select id="check-stage" class="w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm font-semibold">
+                            <option value="0">단계 미지정 (공통 규칙만)</option>
+                            <option value="1">1단계 본문 확정과 자료</option>
+                            <option value="2">2단계 해석 지형과 난제</option>
+                            <option value="3">3단계 본문 비평</option>
+                            <option value="4">4단계 번역 대조와 핵심 어휘</option>
+                            <option value="5">5단계 문학 구조</option>
+                            <option value="6">6단계 배경</option>
+                            <option value="7">7단계 상호텍스트</option>
+                            <option value="8">8단계 구속사와 기독론</option>
+                            <option value="9">9단계 판정과 교리 점검</option>
+                            <option value="10">10단계 명제·설교</option>
+                            <option value="101">축약 ①단계 본문과 난제</option>
+                            <option value="102">축약 ②단계 어휘와 구조</option>
+                            <option value="103">축약 ③단계 구속사 연결과 잠정 판정</option>
+                            <option value="104">축약 ④단계 명제와 적용</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <label for="srcmax-input" class="text-xs font-bold text-emerald-900">1단계 자료 수</label>
+                            <input type="number" id="srcmax-input" min="0" placeholder="예: 10" oninput="saveSrcMax()" class="w-24 px-3 py-1.5 bg-white border border-emerald-200 rounded-lg text-sm">
+                        </div>
+                        <span class="text-xs text-emerald-800">1단계 답변을 검사하면 ‘자료1, 자료2…’ 목록에서 자동으로 채웁니다.</span>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="firsts-input" class="block text-xs font-bold text-emerald-900 mb-1">자료별 주석의 첫 쪽 (선택 · 쉼표로 구분, 또는 sources.json 붙여 넣기)</label>
+                        <input type="text" id="firsts-input" oninput="saveFirsts()" placeholder="예: 105, 233, 1201 — 답변에 이 쪽수만 단독으로 나오면 ‘첫 쪽을 쪽수로 표기’로 표시합니다" class="w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm">
+                    </div>
+                    <label class="md:col-span-2 flex items-start gap-2 text-xs font-semibold text-emerald-900 cursor-pointer">
+                        <input type="checkbox" id="team-format" class="w-4 h-4 mt-0.5 accent-emerald-700">
+                        <span>팀 파일 형식도 검사 (‘## 인계 요약’ 유무·1,200자, 본문 4,000자 안팎) <span class="font-normal text-emerald-700">— 석의 팀의 단계 파일을 검사할 때만 켜십시오</span></span>
+                    </label>
+                </div>
+                <textarea id="check-input" rows="6" placeholder="AI 답변을 여기에 붙여 넣으십시오."
+                          class="w-full px-4 py-3 bg-white border border-emerald-200 rounded-xl text-sm"></textarea>
+                <div class="flex gap-2 mt-2">
+                    <button onclick="runCheck()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold">검사</button>
+                    <button onclick="document.getElementById('check-input').value=''; document.getElementById('check-result').innerHTML='';" class="bg-white border border-emerald-300 text-emerald-800 px-4 py-2 rounded-lg text-xs font-bold">지우기</button>
+                </div>
+                <div id="check-result" class="mt-3 text-sm"></div>
+            </div>
+
+            <!-- 증거 점검표 -->
+            <div id="evidence-panel" class="mb-6 p-5 md:p-6 rounded-2xl border-2 border-indigo-200 bg-indigo-50">
+                <p class="text-sm font-extrabold text-indigo-900 mb-1">증거 점검표 (9단계 판정 전에)</p>
+                <p class="text-xs text-indigo-800 mb-2">난제마다 판정을 좌우하는 근거를 한 줄씩 적습니다. 확인 상태의 기본값은 ‘확인 필요’입니다. ‘확인됨’은 다음 경우에만 고르십시오.</p>
+                <ul class="text-xs text-indigo-900 mb-2 list-none space-y-0.5">
+                    <li><b>(가)</b> 위 입력란에 넣은 본문(개역개정·원문·LXX·관련 구절)의 해당 문구를 확인 근거 칸에 옮긴 경우</li>
+                    <li><b>(나)</b> 자료의 구체적 쪽을 댔거나, 발췌 문서의 해당 문장을 확인 근거 칸에 옮긴 경우</li>
+                    <li><b>(다)</b> 검증자가 주어진 자료의 해당 문구를 근거 칸에 대어 확인한 경우(‘지적 없음’만으로는 아님) 또는 사용자가 직접 확인한 경우</li>
+                </ul>
+                <p class="text-xs text-indigo-800 mb-3">앞 단계에서 ‘확인 필요’였던 근거와 검증에서 지적된 근거는 ‘확인 필요’로 둡니다. 핵심 근거가 ‘확인 필요’인 난제는 판정을 ‘잠정 판정’으로 표시하십시오. AI의 답변만으로는 ‘확인됨’이 되지 않습니다.</p>
+                <div id="evidence-rows" class="space-y-3"></div>
+                <p id="evidence-summary" class="text-xs font-bold text-indigo-900 mt-3"></p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="addEvidenceRow()" class="bg-indigo-700 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold">행 추가</button>
+                    <button onclick="copyEvidence()" class="bg-white border border-indigo-300 text-indigo-800 px-4 py-2 rounded-lg text-xs font-bold">마크다운 표로 복사</button>
+                    <button onclick="clearEvidence()" class="bg-white border border-indigo-200 text-indigo-600 px-4 py-2 rounded-lg text-xs font-bold">이 본문의 점검표 비우기</button>
+                </div>
+                <details class="mt-3">
+                    <summary class="text-xs font-bold text-indigo-900 cursor-pointer">AI가 낸 ‘아직 확인할 주장’ 표를 행으로 가져오기</summary>
+                    <p class="text-xs text-indigo-800 mt-2 mb-2">하브루타 마무리 표나 9단계 답변의 마크다운 표(‘결정적 근거 | 다룬 단계 | 확인 근거 | 확인 상태’)를 붙여 넣으십시오. AI의 답에서 온 행이므로 상태는 모두 ‘확인 필요’로 들어옵니다.</p>
+                    <textarea id="evidence-import" rows="4" class="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs" placeholder="| 결정적 근거 | 다룬 단계 | 확인 근거 | 확인 상태 |"></textarea>
+                    <button onclick="importEvidence()" class="mt-2 bg-indigo-700 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold">행으로 가져오기</button>
+                </details>
+                <p id="evidence-store" class="text-xs text-indigo-700 mt-2"></p>
+            </div>
+
+            <!-- 독립 검증 요청문 -->
+            <div id="indep-panel" class="mb-6 p-5 md:p-6 rounded-2xl border-2 border-sky-200 bg-sky-50">
+                <p class="text-sm font-extrabold text-sky-900 mb-1">독립 검증 요청문 (기본 1회: 9단계 뒤)</p>
+                <p class="text-xs text-sky-900 mb-2 p-2 rounded-lg bg-white border border-sky-200"><b>석의에 쓴 AI와 다른 회사의 AI</b>(예: 제미나이로 석의했다면 ChatGPT나 Claude)에 붙여 넣으십시오. 같은 AI의 새 대화는 약한 검증입니다. 두 AI가 같은 답을 해도 확인된 것은 아닙니다 — 판정은 원문과 자료로 합니다.</p>
+                <p class="text-xs text-sky-800 mb-3">지금까지의 대화와 추론은 넘기지 않습니다. 요청문에 바라는 결론이나 선이해 자료(교재 가이드·공과·설교 원고)의 문장을 덧붙이지 마십시오.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label for="indep-target" class="block text-xs font-bold text-sky-900 mb-1">검증 대상</label>
+                        <select id="indep-target" onchange="renderIndep()" class="w-full px-3 py-2 bg-white border border-sky-200 rounded-lg text-sm font-semibold">
+                            <option value="9">9단계 판정과 교리 점검 (기본)</option>
+                            <option value="4">4단계 번역 대조와 핵심 어휘 (요청할 때만)</option>
+                            <option value="103">축약 ③단계 구속사 연결과 잠정 판정</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-1.5 justify-end">
+                        <label class="flex items-center gap-2 text-xs font-semibold text-sky-900 cursor-pointer"><input type="checkbox" id="indep-texts" checked onchange="renderIndep()" class="w-4 h-4 accent-sky-700">입력한 본문(개역개정·원문·관련 구절) 함께 넣기</label>
+                        <label class="flex items-center gap-2 text-xs font-semibold text-sky-900 cursor-pointer"><input type="checkbox" id="indep-evidence" checked onchange="renderIndep()" class="w-4 h-4 accent-sky-700">증거 점검표 함께 넣기</label>
+                        <label class="flex items-center gap-2 text-xs font-semibold text-sky-900 cursor-pointer"><input type="checkbox" id="indep-memo" checked onchange="renderIndep()" class="w-4 h-4 accent-sky-700">청중 메모 함께 넣기 (⑧ 점검용)</label>
+                    </div>
+                </div>
+                <div class="flex justify-end mb-2"><button onclick="copyIndep()" class="bg-sky-700 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-xs font-bold">요청문 복사</button></div>
+                <div id="indep-preview" class="bg-white p-4 rounded-xl border border-sky-100 text-xs text-slate-700 leading-relaxed max-h-80 overflow-y-auto break-anywhere"></div>
+                <p class="text-xs text-sky-800 mt-3"><b>결과 반영</b> · 확신도가 높고 근거가 주어진 자료에 있는 지적은 반영하고, 나머지는 ‘확인 필요’로 남기십시오. 반영하지 않은 지적은 그 이유를 적어 두십시오. 검증자가 판정을 다시 쓰게 하지 않습니다.</p>
+            </div>
+
+            <!-- NotebookLM 사용 규칙 -->
+            <div class="mb-6 p-5 md:p-6 rounded-2xl border-2 border-amber-300 bg-amber-50 text-amber-950">
+                <p class="text-sm font-extrabold mb-2">NotebookLM 사용 규칙 (참고 도구일 뿐입니다)</p>
+                <ol class="text-xs leading-relaxed list-decimal pl-5 space-y-1.5">
+                    <li><b>NotebookLM은 판정자가 아닙니다.</b> 쓰는 곳은 둘뿐입니다: 빠진 견해 찾기, 2차 인용에 대한 1차 원문 찾기.</li>
+                    <li><b>9단계 판정을 쓴 뒤에만</b> 묻습니다. 질문은 견해 목록으로 중립적으로 하고, 판정이나 바라는 결론을 질문에 넣지 마십시오. <b>한 본문에 질문 3번 이내</b>로 합니다.</li>
+                    <li><b>질문 전에 소스 목록에서 개인 원고와 출처를 모르는 파일은 체크를 해제</b>하십시오. 이 본문의 주석 부분이 실제로 든 소스가 없으면 묻지 않습니다.</li>
+                    <li><b>저자 이름은 ‘미확인’에서 시작합니다.</b> 답에 붙은 인용의 원문을 직접 열어 확인하기 전까지는 누구의 견해인지 적지 마십시오. 같은 문장이 다른 책 이름으로 붙는 일이 잦습니다.</li>
+                    <li>인용이 없는 답이나 단락은 버립니다. 9단계 판정 문장은 NotebookLM의 답으로 바꾸지 않습니다.</li>
+                    <li><b>미발행 원고와 개인 자료는 넣지 마십시오.</b> 교재 가이드·공과·설교 원고 같은 선이해 자료의 문장도 질문에 옮기지 마십시오(외부 전송 금지).</li>
+                    <li>반영은 여러분이 승인한 것만 합니다. 인용된 원문 문장을 증거 점검표의 확인 근거 칸에 옮기고 ‘자료 외(NotebookLM 경유)’로 표시하면 ‘확인됨’ (나)로 봅니다.</li>
+                </ol>
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <input type="text" id="nlm-crux" placeholder="난제 번호 (예: 난제2)" class="w-40 px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-sm">
+                    <button onclick="copyNlmQuestion()" class="bg-amber-700 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-bold">중립 질문 복사</button>
+                </div>
+                <p class="text-xs text-amber-800 mt-2">복사되는 질문: “<span id="nlm-preview"></span>”</p>
+            </div>
+        </section>
+
+        <!-- v8.0: 하브루타 탭 -->
+        <section id="tab-havruta" class="hidden">
+            <div class="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 mb-6 text-sm text-slate-700 leading-relaxed">
+                <p class="text-base font-extrabold text-slate-900 mb-2">하브루타 — AI와 묻고 답하며 이어 공부하기</p>
+                <p>하브루타는 짝과 서로 묻고 답하며 배우는 방식입니다. 여기서는 AI가 그 짝이 됩니다. 석의(정밀 10단계나 축약 4단계)를 마친 뒤 그 결과를 붙여 넣으면, AI가 여러분의 결과와 본문에 근거해 질문하고, 여러분의 질문에도 답하며, 약하거나 확인되지 않은 곳을 질문으로 다시 꺼냅니다. AI는 설교를 대신 쓰는 저자가 아니라 함께 따지는 공부 짝이며, AI의 말도 ‘확인 필요’에서 시작합니다.</p>
+            </div>
+
+            <div class="mb-6 p-5 md:p-6 rounded-2xl border-2 border-teal-200 bg-teal-50">
+                <p class="text-sm font-extrabold text-teal-900 mb-1">1. 내 석의 결과 붙여 넣기</p>
+                <p class="text-xs text-teal-800 mb-3">단계 답변, 판정, 명제, 증거 점검표 등 여러분이 이미 만든 결과를 붙여 넣으십시오. 하브루타는 이 결과와 위에 입력한 본문만을 근거로 진행됩니다. 교재 가이드·공과·미발행 원고는 넣지 마십시오.</p>
+                <div class="flex flex-wrap items-center gap-3 mb-2">
+                    <span class="text-xs font-bold text-teal-900">결과의 바탕</span>
+                    <div class="flex bg-white p-1 rounded-xl text-xs font-bold text-slate-600 border border-teal-200">
+                        <button id="hav-basis-full" onclick="setHavBasis('full')" class="px-3 py-1.5 rounded-lg">정밀 10단계</button>
+                        <button id="hav-basis-short" onclick="setHavBasis('short')" class="px-3 py-1.5 rounded-lg">축약 4단계</button>
+                    </div>
+                </div>
+                <textarea id="hav-results" rows="8" oninput="saveHav(); renderHav()" placeholder="예: ③단계 잠정 판정 표, ④단계 명제와 적용, 9단계 판정 … 여러분의 석의 결과를 붙여 넣으십시오." class="w-full px-3 py-2 bg-white border border-teal-200 rounded-xl text-sm"></textarea>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    <button onclick="pullEvidenceToHav()" class="bg-white border border-teal-300 text-teal-800 px-4 py-2 rounded-lg text-xs font-bold">이 본문의 증거 점검표 불러와 붙이기</button>
+                    <span id="hav-results-stat" class="text-xs text-teal-800 self-center"></span>
+                </div>
+            </div>
+
+            <div class="mb-6 p-5 md:p-6 rounded-2xl border-2 border-teal-200 bg-teal-50">
+                <p class="text-sm font-extrabold text-teal-900 mb-3">2. 하브루타 설정</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label for="hav-level" class="block text-xs font-bold text-teal-900 mb-1">수준</label>
+                        <select id="hav-level" onchange="saveHav(); renderHav()" class="w-full px-3 py-2 bg-white border border-teal-200 rounded-lg text-sm font-semibold">
+                            <option value="easy">쉽게</option>
+                            <option value="standard" selected>표준</option>
+                            <option value="expert">전문</option>
+                        </select>
+                    </div>
+                    <div>
+                        <p class="block text-xs font-bold text-teal-900 mb-1">집중할 단계 (고른 단계에서만 묻습니다)</p>
+                        <div id="hav-stages" class="flex flex-wrap gap-1.5"></div>
+                    </div>
+                </div>
+                <p class="text-sm font-extrabold text-teal-900 mb-1 mt-4">3. 시작 지침 복사 → 새 대화에 붙여 넣기</p>
+                <p class="text-xs text-teal-800 mb-2">AI가 한 번에 하나씩 묻고, 여러분의 답에 동의나 반론을 근거 절과 함께 돌려줍니다. 여러분이 물으면 결과와 본문에 근거해 답합니다. 다섯 번 주고받을 때마다, 또는 ‘정리’라고 하면 ‘확인된 것 / 아직 확인 필요’ 표를 냅니다. 그 표는 ‘검증’ 탭의 증거 점검표로 가져오십시오.</p>
+                <div class="flex justify-end mb-2"><button onclick="copyHav()" class="bg-teal-700 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold">하브루타 시작 지침 복사</button></div>
+                <div id="hav-preview" class="bg-white p-4 rounded-xl border border-teal-100 text-xs text-slate-700 leading-relaxed max-h-80 overflow-y-auto break-anywhere"></div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <button onclick="copyHavCmd('정리')" class="bg-white border border-teal-300 text-teal-800 px-3 py-1.5 rounded-lg text-xs font-bold">‘정리’ 요청 복사</button>
+                    <button onclick="copyHavCmd('근거')" class="bg-white border border-teal-300 text-teal-800 px-3 py-1.5 rounded-lg text-xs font-bold">‘근거를 대 주십시오’ 요청 복사</button>
+                    <button onclick="setTab('verify'); setTimeout(() => document.getElementById('evidence-panel').scrollIntoView({behavior:'smooth'}), 50)" class="bg-white border border-indigo-300 text-indigo-800 px-3 py-1.5 rounded-lg text-xs font-bold">정리 표를 증거 점검표로 →</button>
+                </div>
+            </div>
+        </section>
 
         <footer class="mt-16 text-center border-t border-slate-200 pt-8">
-            <p class="text-slate-400 text-xs">© 2026 Reformed Exegesis Protocol v7.6 · 답변 검사 · 본문 전달 방식(소스 파일·나눠 보내기) · 정밀 10단계·축약 4단계 · 확인할 곳 · 개역개정·원문 기준 · 청중 선택 · 난제 인계 · 증거 점검 · 장르 모듈 · 권별 경고 · 교차 검증</p>
+            <p class="text-slate-400 text-xs">© 2026 Reformed Exegesis Protocol v8.0 · 검증(확인 지점 ①②③·증거 점검표·독립 검증·NotebookLM 사용 규칙·답변 검사·선이해 격리와 대조) · 하브루타(AI 공부 짝) · 예시 본문(마 4:1–11) · 본문 전달 방식(소스 파일·나눠 보내기) · 정밀 10단계·축약 4단계 · 확인할 곳 · 개역개정·원문 기준 · 청중 선택 · 난제 인계 · 증거 점검 · 장르 모듈 · 권별 경고 · 교차 검증</p>
         </footer>
     </div>
 
     <div id="toast" class="toast">복사 완료! 채팅창에 붙여넣으세요.</div>
 
+<script id="checker-core">
+// ───────────────────────── v8.0: 답변 검사 핵심 (화면과 무관한 순수 함수) ─────────────────────────
+// v7.6 답변 검사에 석의 팀 자동 검사(check_stage.py)의 규칙을 합쳤다. 화면 코드는 runCheck()가 맡는다.
+function normKo(t) { return t.replace(/[\s.,;:!?·'"“”‘’()\[\]{}\-–—…「」『』<>*_\\|]/g, ""); }
+function stripMarks(t) { return t.normalize("NFD").replace(/[֑-ׇ̀-ͯ͂̓ͅ]/g, "").replace(/[־־]/g, " ").toLowerCase(); }
+const CK_TAG = /확인\s*필요|사역|자료\s*외/;                        // 인용 뒤 40자 안에 있으면 대조에서 뺀다(check_stage)
+const CK_HEB = /[֐-׿]{3,}/g;
+const CK_GRK = /[Ͱ-Ͽἀ-῿]{3,}/g;
+const CK_MIX = /[Ͱ-Ͽἀ-῿]+[Ѐ-ӿ֐-ۿ]+|[Ѐ-ӿ]+[Ͱ-Ͽ]+/g;
+const CK_OVER = /입증합니다|입증함|확인했습니다|확인함|확증합니다|확증함|완벽히|완벽하게/g;
+// 단계 번호: 0 미지정, 1–10 정밀, 101–104 축약(①②③④)을 check_stage의 N으로 바꾼다
+function ckStageN(v) { v = parseInt(v, 10) || 0; return ({ 101: 2, 102: 5, 103: 9, 104: 10 })[v] || v; }
+// 첫 쪽 목록: 쉼표·공백으로 구분한 숫자, 또는 sources.json([{first_page}])
+function parseFirsts(text) {
+  const t = (text || "").trim(); const set = new Set();
+  if (!t) return set;
+  if (/^\s*\[/.test(t)) {
+    try { JSON.parse(t).forEach(s => { if (s && s.first_page) set.add(String(s.first_page)); }); return set; } catch (e) {}
+  }
+  (t.match(/\d{1,4}/g) || []).forEach(n => set.add(String(parseInt(n, 10))));
+  return set;
+}
+// o = { nkrv, rel, orig, lxx, srcMax, firsts:Set, stage, teamFormat }
+// 반환: { rows:[[유형, 줄, 대상, 조치, 건수]], notes:[같은 형식], listedMax }
+function checkAnswer(ans, o) {
+  o = o || {};
+  const N = ckStageN(o.stage);
+  const base = normKo((o.nkrv || "") + "\n" + (o.rel || ""));
+  const lineOf = i => ans.slice(0, i).split("\n").length;
+  const rows = [], notes = [];
+  const add = (type, i, target, fix) => rows.push([type, i < 0 ? "-" : lineOf(i), target, fix]);
+  const note = (type, i, target, fix) => notes.push([type, i < 0 ? "-" : lineOf(i), target, fix]);
+  // 자료 목록 자동 인식(1단계 답변)
+  const listed = [...ans.matchAll(/^[\s\-*•·]*자료\s?(\d{1,3})\s*[,，:.)]\s*\S/gm)].map(m => parseInt(m[1], 10));
+  const listedMax = listed.length >= 2 ? Math.max(...listed) : 0;
+  // 1) 개역개정 인용 — 「」 전부, 따옴표는 장절·‘개역개정’ 표기가 가까이 있을 때만
+  if (base) {
+    const spans = [];
+    const check = (q, s, e) => {
+      const pieces = q.split(/…|\.\.\./).filter(p => normKo(p).length >= 4);
+      const bad = pieces.filter(p => !base.includes(normKo(p)));
+      if (!bad.length) return;
+      if (CK_TAG.test(ans.slice(e, e + 40))) {
+        note("‘확인 필요·사역·자료 외’ 표시가 붙은 인용", s, "「" + q.slice(0, 60) + "」", "대조에서 뺐습니다. 대한성서공회 본문으로 직접 확인하십시오");
+        return;
+      }
+      add("제공된 개역개정에 없음 (오인용 또는 미제공 구절)", s, "「" + q.slice(0, 60) + "」", "없는 조각: " + bad.map(b => b.trim().slice(0, 25)).join(" / ") + " — 제공된 본문에서 다시 옮기거나 ‘(개역개정 확인 필요)’를 붙이십시오");
+    };
+    for (const m of ans.matchAll(/「([^」\n]{2,400})」/g)) { spans.push([m.index, m.index + m[0].length]); check(m[1], m.index, m.index + m[0].length); }
+    for (const m of ans.matchAll(/["“]([^"”\n]{6,300})["”]/g)) {
+      if (spans.some(([a, b]) => m.index >= a && m.index < b)) continue;
+      if (!/[가-힣]{2}/.test(m[1])) continue;
+      // 표 칸·설명문 오인 방지(v7.6): 칸 구분자, 장절 표기, 괄호, 빗금, 영문 단어가 든 것은 성경 인용으로 보지 않는다
+      if (/[|()\/]|\d+\s*:\s*\d+|[A-Za-z]{3,}/.test(m[1]) || m[1].length > 300) continue;
+      const ctx = ans.slice(Math.max(0, m.index - 30), m.index) + ans.slice(m.index + m[0].length, m.index + m[0].length + 30);
+      if (/\d{1,3}\s*:\s*\d{1,3}|\d{1,3}\s*절|개역개정|NKRV/.test(ctx)) check(m[1], m.index, m.index + m[0].length);
+    }
+  }
+  // 2) 쪽 표기 (1단계는 자료의 다루는 범위를 적으므로 뺀다)
+  if (N !== 1) {
+    for (const m of ans.matchAll(/(?<![\d:])\d{1,4}\s*쪽?\s*[–\-~]\s*\d{1,4}\s*쪽/g)) add("쪽 범위를 쪽수처럼 표기", m.index, m[0], "그 내용이 실린 쪽이나 절 주석 위치로");
+    const firsts = o.firsts instanceof Set ? o.firsts : parseFirsts(o.firsts);
+    if (firsts.size) for (const m of ans.matchAll(/(?<![\d–\-~])(\d{1,4})\s*쪽(?!\s*[–\-~])/g)) {
+      if (firsts.has(String(parseInt(m[1], 10)))) add("첫 쪽을 쪽수로 표기", m.index, m[0], "주석이 시작되는 첫 쪽입니다. 절 주석 위치로");
+    }
+  }
+  // 3) 자료 번호
+  const max = listedMax || parseInt(o.srcMax, 10);
+  if (max > 0) {
+    const seen = new Set();
+    for (const m of ans.matchAll(/자료\s?(\d{1,3})(?!\d)/g)) {
+      const n = parseInt(m[1], 10);
+      if (n > max && !seen.has(n)) { seen.add(n); add("자료 목록에 없는 번호", m.index, m[0], `1단계 목록은 자료1–자료${max}입니다. 저자를 확인해 바로잡거나 ‘자료 외’로`); }
+    }
+  }
+  // 4) 원어 — 원문을 넣었으면 대조(v7.6), 넣지 않았으면 개수를 센다(check_stage)
+  const origTxt = (o.orig || "").trim(), lxxTxt = (o.lxx || "").trim();
+  const heb = (ans.match(CK_HEB) || []).length, grk = (ans.match(CK_GRK) || []).length;
+  if (heb && !origTxt) add("원문 미제공 상태의 히브리·아람어", -1, heb + "곳", "‘(원문 확인 필요)’를 붙이거나 원문을 입력하십시오");
+  if (grk && !origTxt && !lxxTxt) add("원문 미제공 상태의 헬라어", -1, grk + "곳", "‘(원문 확인 필요)’를 붙이거나 원문을 입력하십시오");
+  if (origTxt || lxxTxt) {
+    const origBase = stripMarks(origTxt + " " + lxxTxt).replace(/\s/g, "");
+    const miss = new Set(), tagged = new Set();
+    for (const m of ans.matchAll(/[א-ת][א-ת֑-ׇ]{2,}|[Ͱ-Ͽἀ-῿]{3,}/g)) {
+      if (!origTxt && /[א-ת]/.test(m[0])) continue;   // 히브리어는 위에서 이미 셌다
+      const w = stripMarks(m[0]).replace(/\s/g, "");
+      if (w.length >= 3 && !origBase.includes(w)) (CK_TAG.test(ans.slice(m.index + m[0].length, m.index + m[0].length + 40)) ? tagged : miss).add(m[0]);
+    }
+    if (tagged.size) note("‘확인 필요·사역·자료 외’ 표시가 붙은 원어 낱말", -1, [...tagged].slice(0, 8).join(", ") + (tagged.size > 8 ? ` 외 ${tagged.size - 8}개` : ""), "대조에서 뺐습니다. 사전이나 원문으로 직접 확인하십시오");
+    if (miss.size) add("제공된 원문에 없는 원어 낱말", -1, [...miss].slice(0, 8).join(", ") + (miss.size > 8 ? ` 외 ${miss.size - 8}개` : ""), "사전형(어근)이면 ‘(원문 확인 필요)’ 표시를, 본문 인용이면 원문과 대조하십시오");
+  }
+  // 5) 깨진 문자
+  const broken = [...ans.matchAll(/[�]|Ã.|Â|ð/g)];
+  if (broken.length) add("깨진 문자", broken[0].index, broken.slice(0, 5).map(m => m[0]).join(" "), "원문이나 자료에서 다시 옮기십시오");
+  const mix = ans.match(CK_MIX);
+  if (mix) add("문자 깨짐 (문자 체계가 섞임)", -1, mix.slice(0, 5).join(", "), "원문에서 다시 옮기십시오");
+  // 6) 단계별 규칙
+  if (N >= 3 && N <= 8) for (const m of ans.matchAll(CK_OVER)) add("결론·과잉 확신 표현", m.index, m[0], "‘지지하는 견해’로 (판정은 9단계)");
+  if (N === 8 && !ans.includes("연결 없음")) add("다섯 사건 모두 연결", -1, "‘연결 없음’ 0건", "본문 쪽 근거 단어를 다시 확인하십시오");
+  if (N === 9 && ans.includes("확인됨") && !/확인\s*필요|잠정\s*판정/.test(ans)) add("증거 자기 승인 의심", -1, "‘확인 필요’·‘잠정 판정’ 0건", "‘확인됨’마다 (가)(나)(다) 조건을 대조하십시오");
+  // 7) 팀 파일 형식 (선택)
+  if (o.teamFormat) {
+    const k = ans.indexOf("## 인계 요약");
+    const body = k < 0 ? ans : ans.slice(0, k), hand = k < 0 ? "" : ans.slice(k + "## 인계 요약".length);
+    if (k < 0) add("인계 요약 없음", -1, "", "끝에 ‘## 인계 요약’을 붙이십시오");
+    else if (hand.length > 1400) add("인계 요약 과다", -1, hand.length + "자", "1,200자 이내로");
+    if (body.length > 5500) add("단계 분량 과다", -1, body.length + "자", "4,000자 안팎으로 압축");
+  }
+  if (!base) rows.unshift(["개역개정 미입력", "-", "", "위 입력란에 개역개정을 넣어야 인용을 대조할 수 있습니다"]);
+  // 같은 유형·같은 대상은 한 줄로 묶는다
+  const merge = list => { const out = [], idx = {}; list.forEach(r => { const key = r[0] + "\u0000" + r[2]; if (key in idx) out[idx[key]][4]++; else { idx[key] = out.length; out.push([...r, 1]); } }); return out; };
+  return { rows: merge(rows), notes: merge(notes), listedMax };
+}
+
+</script>
 <script>
 // ───────────────────────── 1. 성경 책 DB ─────────────────────────
 // [id, 구분, 기본장르, 경고목록, 이름들(전체·약어·영문)]
@@ -361,12 +673,16 @@ const GENRES = {
 };
 
 // ───────────────────────── 4. 공통 규칙 ─────────────────────────
+// v8.0: '확인됨'의 세 조건 — 석의 팀 SKILL 9단계 문구. 9단계·축약 ③·검증 탭·독립 검증에서 같은 문장을 쓴다.
+const GROUNDS_LIST = ["(가) 제공된 본문(개역개정·원문·LXX·관련 구절)의 해당 문구를 확인 근거 칸에 옮긴 경우", "(나) 자료의 구체적 쪽을 댔거나, 발췌 문서의 해당 문장을 확인 근거 칸에 옮긴 경우", "(다) 검증자가 주어진 자료의 해당 문구를 근거 칸에 대어 확인한 경우(‘지적 없음’만으로는 아님) 또는 사용자가 직접 확인한 경우"];
+const GROUNDS = GROUNDS_LIST.join(", ");
 const STAGE_LIST = "1 본문 확정과 자료 점검, 2 해석 지형과 난제, 3 본문 비평, 4 번역 대조와 핵심 어휘, 5 문학 구조, 6 역사·사회문화 배경, 7 정경 상호텍스트, 8 구속사와 기독론, 9 난제 판정과 교리 점검, 10 석의 명제와 설교";
 const START_HEAD = "아래는 [해당 본문] 연구 지침입니다. 이 메시지에는 본문을 분석하지 말고, 지침을 이해했으면 '확인'이라고만 답하십시오.";
 const START_BODY = [
   "지금부터 [해당 본문]을 다음 10단계로 연구합니다: " + STAGE_LIST + ". 질문에 나오는 단계 번호는 이 목록을 가리킵니다.",
   "[진행 원칙]",
   "- 각 단계에서는 그 단계의 질문에만 답하십시오. 다음 단계의 내용, 특히 9단계의 판정과 10단계의 설교 적용을 미리 다루지 마십시오.",
+  "- 다음 단계는 사용자가 그 단계의 질문을 붙여 넣을 때만 시작하십시오. 확인 지점에서 사용자가 답하면 그 답을 반영해 표만 고치고 멈추십시오.",
   "- 앞 단계에서 이미 제시한 표나 목록은 다시 쓰지 말고 'n단계 참조'로 표시하십시오.",
   "- 앞 단계의 내용이 이후의 점검이나 검증에서 수정되었으면, 수정된 내용을 따르십시오. 점검에서 지적된 표기 방식(예: 첫 쪽 대신 절 주석 위치)은 이후 모든 단계에 계속 적용하십시오.",
   "- 질문에 든 예시 목록은 점검할 항목의 예일 뿐입니다. 본문에 실제로 해당하는 것만 다루고, 없으면 '해당 없음'이라고 쓰십시오.",
@@ -377,12 +693,13 @@ const START_BODY = [
   "③ 성경과 원문 인용: 따옴표 안의 성경 본문은 제공된 개역개정 본문(이 지침에 붙인 본문 또는 자료로 올린 본문)에서 한 글자도 바꾸지 말고 그대로 옮기십시오. 제공되지 않은 구절은 따옴표로 인용하지 말고 장절만 적으십시오(예: '사 43:2 참조'). 기억에 의존해 인용하면 '확인 필요'를 붙여도 오류가 됩니다. 히브리어, 헬라어, LXX 문구도 제공된 원문에서만 옮기십시오. 제공되지 않은 본문의 원문 구절은 옮기지 말고, 낱말의 사전형(어근)만 쓸 때는 '(원문 확인 필요)'를 붙이십시오. 신약의 인용 문구를 LXX 문구로 쓰지 마십시오. 원어를 직접 옮긴 것은 '사역'으로 표시하고, 논증에 맞추려고 번역어를 바꾸지 마십시오. MT·LXX·영역본과 장절이 다르면 함께 표기하십시오.",
   "④ 구분: 학자의 견해와 이 분석의 추론을 구분해 표시하십시오. 질문이 요구하지 않은 별도의 제안이나 설교 적용은 덧붙이지 마십시오.",
   "⑤ 단정 금지: 원인, 연대, 위치, 저자 귀속이 불확실하거나 학자마다 다르면 견해별로 제시하십시오. 각 견해는 그 지지자가 인정할 이름과 형태로 서술하십시오.",
-  "⑥ 형식: 서론 없이 본론부터 쓰고, 비교가 필요한 내용은 표로 정리하십시오."
+  "⑥ 형식: 서론 없이 본론부터 쓰고, 비교가 필요한 내용은 표로 정리하십시오.",
+  "[선이해 격리] 교재 가이드·공과·설교 원고 같은 선이해 자료는 9단계 판정 전에는 올리지도 인용하지도 마십시오. 그런 자료가 대화에 올라오면 열거나 인용하지 말고 그 사실만 알리십시오."
 ];
 const PLATFORM = {
   notebooklm: { label: "NotebookLM",
     rule: "",
-    tip: "NotebookLM: 연구 본문의 개역개정(필요하면 MT·LXX·관련 구절)을 아래 입력란에 넣고, 같은 본문을 소스로도 추가하십시오(대화가 길어져도 유지됩니다). 신약 인용 구절이 확인되면 그 본문도 추가하십시오. 각 단계 답변은 노트로 저장하고 9·10단계에서 함께 선택하십시오. 인용 번호는 화면에서 눌러 원문을 확인하고, 복사한 글의 쪽수는 그대로 믿지 마십시오." },
+    tip: "NotebookLM: 연구 본문의 개역개정(필요하면 MT·LXX·관련 구절)을 아래 입력란에 넣고, 같은 본문을 소스로도 추가하십시오(대화가 길어져도 유지됩니다). 신약 인용 구절이 확인되면 그 본문도 추가하십시오. 각 단계 답변은 노트로 저장하고 9·10단계에서 함께 선택하십시오. 인용 번호는 화면에서 눌러 원문을 확인하고, 복사한 글의 쪽수는 그대로 믿지 마십시오. ⚠ NotebookLM의 답도 판정이 아닙니다. 답에 붙은 저자 이름은 인용된 원문을 직접 열어 보기 전까지 ‘미확인’으로 두십시오(같은 문장이 다른 책 이름으로 붙는 일이 잦습니다). 미발행 원고와 개인 자료는 소스로 넣지 마십시오. 자세한 규칙은 ‘검증’ 탭에 있습니다." },
   claude: { label: "Claude 프로젝트",
     rule: " 웹 검색으로 확인한 내용은 '웹'으로 표시하고 출처를 밝히십시오.",
     tip: "Claude 프로젝트: 연구 본문의 개역개정을 프로젝트 자료로 올리거나 아래 입력란에 붙여 넣으십시오. 1–10단계는 한 대화에서 이어 진행하고, 새 대화를 열면 시작 지침과 2단계 난제 표를 먼저 붙여 넣으십시오." },
@@ -411,7 +728,7 @@ const TEXT_FIELDS = [
   { id: "orig", short: { OT: "MT", NT: "헬라어 원문" },
     label: { OT: "② MT 히브리어 본문 (선택)", NT: "② 헬라어 원문 (선택)" },
     tag: { OT: "제공된 MT 본문", NT: "제공된 헬라어 원문" },
-    ph: { OT: "히브리어 본문(예: 웨스트민스터 레닌그라드 사본, BHS)을 절 번호와 함께 붙여 넣으십시오.", NT: "헬라어 본문(예: SBLGNT, NA28)을 절 번호와 함께 붙여 넣으십시오." } },
+    ph: { OT: "히브리어 본문(예: 웨스트민스터 레닌그라드 사본, BHS)을 절 번호와 함께 붙여 넣으십시오. 관련 구절의 원문도 장절과 함께 넣어도 됩니다.", NT: "헬라어 본문(예: SBLGNT, NA28)을 절 번호와 함께 붙여 넣으십시오. 관련 구절의 원문도 장절과 함께 넣어도 됩니다." } },
   { id: "lxx", short: { OT: "LXX", NT: "구약 인용 LXX" },
     label: { OT: "③ LXX 본문 (선택)", NT: "③ 인용된 구약의 LXX 본문 (선택)" },
     tag: { OT: "제공된 LXX 본문", NT: "제공된 LXX 본문(인용된 구약)" },
@@ -439,11 +756,13 @@ const LITERAL9 = {
   OT: "[사역 보정] 끝으로 판정에 따라 4단계 사역에서 바뀌는 절만 다시 제시하고, 바뀐 이유를 난제 번호와 함께 적으십시오.",
   NT: "[사역 보정] 끝으로 판정에 따라 4단계 사역에서 바뀌는 절만 다시 제시하고, 바뀐 이유를 난제 번호와 함께 적으십시오."
 };
+// v8.0: 선이해 대조(석의 팀 SKILL 10단계) — 선택. 판정이 끝난 뒤에만 선이해 자료를 연다.
+const PRECOMP = v => `[선이해 대조] ${v} 판정이 끝났으므로 이제 아래에 선이해 자료(교재 가이드·공과·설교 원고)를 붙입니다. 그 진술을 ${v} 판정과 한 항목씩 맞대어 '일치 / 부분 일치 / 불일치'로 적으십시오. 불일치·부분 일치 항목은 따로 묻지 말고 다음 형식으로 쓰십시오: 가이드 진술(원문 그대로) / 그 근거(자료·절, 없으면 '근거 제시 없음') / 반대 견해와 그 근거(${v} 판정·자료·절) / 수정안(설교·공과 문구를 어떻게 고칠 수 있는지). 설교·적용 본문은 ${v} 판정을 따르고, 선이해 자료에 맞추려고 판정을 바꾸지 마십시오.\n\n[선이해 자료를 여기에 붙여 넣으십시오]`;
 const PULPIT_SEG = "[설교자를 위한 한 줄] 답변 끝에, 이 연구 전체가 설교 준비에 주는 의미를 한두 문장으로 덧붙이십시오.";
 // ───────────────────────── v7.5: 본문 전달 방식 ─────────────────────────
 const DELIVERY_HINT = {
   source: "본문을 파일로 내려받아 NotebookLM 소스(또는 Claude 프로젝트 자료, Gemini 첨부)로 올리십시오. 시작 지침에는 파일 이름만 들어가므로 채팅 길이 제한에 걸리지 않습니다. 파일도 AI의 맥락은 차지하므로 범위 밖 본문은 넣지 마십시오.",
-  split: "파일을 쓸 수 없을 때 쓰십시오. 시작 지침을 보낸 뒤 [자료 1/N]…을 차례로 보내고, 마지막에 [자료 확인]으로 빠진 절이 없는지 점검합니다. 관련 구절(④)은 필요한 단계에서 [추가 자료]로 따로 보냅니다.",
+  split: "파일을 쓸 수 없을 때 쓰십시오. 시작 지침을 보낸 뒤 [입력 1/N]…을 차례로 보내고, 마지막에 [입력 확인]으로 빠진 절이 없는지 점검합니다. 관련 구절(④)은 필요한 단계에서 [추가 자료]로 따로 보냅니다.",
   inline: "본문을 시작 지침 안에 함께 넣습니다. 본문이 짧을 때만 쓰십시오. 길면 채팅 입력 한도에 걸려 잘릴 수 있습니다."
 };
 const FILE_PREFIX = { nkrv: "NKRV", orig: { OT: "MT", NT: "GNT" }, lxx: "LXX", rel: "REL" };
@@ -485,9 +804,9 @@ function buildChunks(passage) {
     flush();
   });
   const n = pieces.length;
-  return pieces.map((p, i) => `[자료 ${i + 1}/${n}] ${p.tag} (${passage})\n${p.text}\n(${i + 1}/${n} 끝 — 분석하지 말고 "${i + 1}/${n} 받음"이라고만 답하십시오)`);
+  return pieces.map((p, i) => `[입력 ${i + 1}/${n}] ${p.tag} (${passage})\n${p.text}\n(${i + 1}/${n} 끝 — 분석하지 말고 "${i + 1}/${n} 받음"이라고만 답하십시오)`);
 }
-const CHECK_MSG = "[자료 확인] 받은 자료를 표로만 정리하십시오: 자료 번호, 판본, 책·장, 첫 절, 끝 절, 절 수. 연구 범위에서 빠진 절이 있으면 그 절 번호만 적으십시오. 아직 1단계를 시작하지 마십시오.";
+const CHECK_MSG = "[입력 확인] 받은 입력을 표로만 정리하십시오: 입력 번호, 판본, 책·장, 첫 절, 끝 절, 절 수. 연구 범위에서 빠진 절이 있으면 그 절 번호만 적으십시오. 아직 1단계를 시작하지 마십시오.";
 function extraMsg(passage) {
   const rel = document.getElementById('text-rel').value.trim();
   return rel ? "[추가 자료] 관련 구절의 개역개정 본문입니다. 규칙 ③의 인용 기준에 더하십시오. 분석하지 말고 '추가 자료 받음'이라고만 답하십시오.\n" + rel : "";
@@ -505,7 +824,7 @@ function downloadField(id) {
 }
 let currentChunks = [];
 function copyChunk(i) { writeClipboard(currentChunks[i], `자료 ${i + 1}/${currentChunks.length} 복사 완료!`); }
-function copyCheckMsg() { writeClipboard(CHECK_MSG, "자료 확인 요청 복사 완료!"); }
+function copyCheckMsg() { writeClipboard(CHECK_MSG, "입력 확인 요청 복사 완료!"); }
 function copyExtra() { const t = extraMsg(); if (t) writeClipboard(t, "추가 자료 복사 완료!"); }
 function deliveryLines(passage) {
   const filled = filledFields();
@@ -516,7 +835,7 @@ function deliveryLines(passage) {
     return ["[본문 자료] 규칙 ③의 인용 기준은 다음 소스 파일입니다. 이 파일들에서만 그대로 옮기고, 이 파일에 없는 구절은 따옴표로 인용하지 말고 장절만 적으십시오: "
       + filled.map(({ f }) => "'" + fileNameFor(f, passage) + "'(" + f.tag[currentTestament] + ")").join(", ") + "."];
   const n = buildChunks(passage).length;
-  return ["[본문 자료] 이 메시지 다음에 인용 기준이 될 본문을 [자료 1/" + n + "]부터 [자료 " + n + "/" + n + "]까지 나누어 보냅니다. 자료를 받는 동안에는 분석하지 말고 'n/N 받음'이라고만 답하십시오. 마지막에 [자료 확인] 요청이 오면 받은 자료를 표로 정리하고, 그 뒤 1단계 질문을 기다리십시오. 연구 중에 [추가 자료]가 오면 그것도 인용 기준에 더하십시오."];
+  return ["[본문 자료] 이 메시지 다음에 인용 기준이 될 본문을 [입력 1/" + n + "]부터 [입력 " + n + "/" + n + "]까지 나누어 보냅니다. 입력을 받는 동안에는 분석하지 말고 'n/N 받음'이라고만 답하십시오. 마지막에 [입력 확인] 요청이 오면 받은 입력을 표로 정리하고, 그 뒤 1단계 질문을 기다리십시오. 연구 중에 [추가 자료]가 오면 그것도 인용 기준에 더하십시오."];
 }
 
 function buildStartPrompt(passage) {
@@ -542,19 +861,20 @@ const FOLLOWUPS = [
   VERIFY,
   CROSS
 ];
-const RULE_REMINDER = "[규칙 상기] 시작 지침의 진행 원칙과 공통 규칙 ①–⑥, 답변 방식을 지키십시오. 이 단계의 질문에만 답하고, 2단계 난제의 견해를 사실처럼 쓰지 마십시오. 따옴표 안의 개역개정과 원문은 제공된 본문(소스 파일이나 [자료])에서 그대로 옮기고, 제공되지 않은 구절은 인용하지 말고 장절만 적으며, 쪽은 확인한 것만 쓰십시오(주석의 첫 쪽이나 쪽 범위 대신 절 주석 위치). 자료는 1단계 목록(자료1–자료N)의 번호와 저자명으로만 표시하고, 목록에 없는 번호를 새로 만들지 말며, 목록에 없는 문헌은 '자료 외'로 표시하십시오.";
+const RULE_REMINDER = "[규칙 상기] 시작 지침의 진행 원칙과 공통 규칙 ①–⑥, 답변 방식을 지키십시오. 다음 단계는 그 단계 질문을 받을 때만 시작하십시오. 이 단계의 질문에만 답하고, 2단계 난제의 견해를 사실처럼 쓰지 마십시오. 따옴표 안의 개역개정과 원문은 제공된 본문(소스 파일이나 [입력])에서 그대로 옮기고, 제공되지 않은 구절은 인용하지 말고 장절만 적으며, 쪽은 확인한 것만 쓰십시오(주석의 첫 쪽이나 쪽 범위 대신 절 주석 위치). 자료는 1단계 목록(자료1–자료N)의 번호와 저자명으로만 표시하고, 목록에 없는 번호를 새로 만들지 말며, 목록에 없는 문헌은 '자료 외'로 표시하십시오.";
 const HANDOFF = "[2단계 인계] 먼저 2단계 난제 표의 마지막 열에서 이 단계(N단계)로 넘겨진 증거를 난제 번호별로 처리하고 '난제n: 증거 / 이 증거가 지지하는 견해(복수 가능) / 이 증거의 한계'로 표시하십시오. '확인했다', '입증한다'처럼 결론을 내리는 표현을 쓰지 마십시오(판정은 9단계). 넘겨진 증거가 없으면 '인계 없음'이라고 쓰십시오. 증거가 어떤 견해를 '지지한다'고 쓰려면 그 증거가 그 견해의 핵심 주장(예: 인물의 정체)에 직접 관련되어야 합니다. 주제만 비슷하면 '지지하는 견해 없음(주제적 배경)'으로 쓰십시오.";
 let startPromptText = "";
 
 // ───────────────────────── v7.4: 확인할 곳 · 축약 4단계 ─────────────────────────
 const CHECK3 = "[확인할 곳] 답변 맨 끝에 '확인할 곳 3가지'를 '주장, 왜 확인해야 하는가, 확인 방법' 표로 적으십시오. 이 답변에서 결론에 가장 큰 영향을 주거나 근거가 약한 주장 3개를 고르고, 확인 방법에는 사용자가 직접 볼 곳(제공된 본문의 몇 절, 원문의 어느 단어, 어느 자료의 몇 절 주석)을 구체적으로 적으십시오. 이 표에서는 그 주장이 맞는지 판정하거나 '확인됨'으로 표시하지 마십시오.";
 const CHECK3_PULPIT = " 이 표는 '설교자를 위한 한 줄' 뒤에 두십시오.";
-const FLOW_FULL = "<span class='font-extrabold text-slate-800'>진행 순서</span> · <b>본문</b>(1 확정 · 3 본문 비평 · 4 번역·어휘) → <b>형태</b>(5 구조) → <b>세계</b>(6 배경) → <b>정경</b>(7 상호텍스트) → <b>그리스도</b>(8 구속사) → <b>판정</b>(9 난제·교리) → <b>선포</b>(10 명제·설교). 난제는 <b>2단계에서 열고 9단계에서 닫습니다.</b> 2단계 난제 표의 마지막 열이 3–8단계의 작업 목록이 되고, 9단계는 증거 점검표로 그 결과를 확인한 뒤 판정합니다. 모든 단계의 답 끝에는 <b>'확인할 곳 3가지'</b>가 붙습니다. AI의 판정이 아니라 여러분이 직접 확인할 목록입니다. <span class='text-blue-600 font-semibold'>3·4·7·9·10단계</span>는 답변을 받은 뒤 '인용·표기 점검'을, <span class='text-blue-600 font-semibold'>3·9단계</span>는 다른 AI와의 교차 검증을 권장하며, 문법 판단이 많은 <span class='text-red-600 font-semibold'>4단계</span>는 교차 검증을 꼭 거치십시오. 9단계의 '확인됨'은 원문 문구, 구체 쪽수, 또는 여러분의 점검 결과가 있을 때만 인정됩니다. 답을 받을 때마다 맨 아래 <b>'답변 검사'</b>에 붙여 넣어 인용, 쪽 범위, 자료 번호를 대조하십시오. 개역개정 인용의 최종 기준은 대한성서공회 본문입니다.";
-const FLOW_SHORT = "<span class='font-extrabold text-slate-800'>축약 4단계</span> · <b>① 본문과 난제</b> → <b>② 어휘와 구조</b> → <b>③ 구속사 연결과 잠정 판정</b> → <b>④ 명제와 적용</b>. 매주 설교 준비와 실습을 위한 방식입니다. 단계마다 답 끝의 <b>'확인할 곳 3가지'</b>를 직접 확인하십시오. <span class='text-blue-600 font-semibold'>②·③단계</span>는 '인용·표기 점검'과 교차 검증을 권장합니다(②는 문법 판단이 많습니다). ③단계의 판정은 모두 <b>잠정</b>입니다. 주일 본설교, 시리즈 기획, 쟁점이 무거운 본문은 정밀 10단계를 쓰십시오. 답을 받을 때마다 맨 아래 <b>'답변 검사'</b>에 붙여 넣어 인용, 쪽 범위, 자료 번호를 대조하십시오. 개역개정 인용의 최종 기준은 대한성서공회 본문입니다.";
+const FLOW_FULL = "<span class='font-extrabold text-slate-800'>진행 순서</span> · <b>본문</b>(1 확정 · 3 본문 비평 · 4 번역·어휘) → <b>형태</b>(5 구조) → <b>세계</b>(6 배경) → <b>정경</b>(7 상호텍스트) → <b>그리스도</b>(8 구속사) → <b>판정</b>(9 난제·교리) → <b>선포</b>(10 명제·설교). 난제는 <b>2단계에서 열고 9단계에서 닫습니다.</b> 2단계 난제 표의 마지막 열이 3–8단계의 작업 목록이 되고, 9단계는 증거 점검표로 그 결과를 확인한 뒤 판정합니다. 모든 단계의 답 끝에는 <b>'확인할 곳 3가지'</b>가 붙습니다. AI의 판정이 아니라 여러분이 직접 확인할 목록입니다. <span class='text-blue-600 font-semibold'>3·4·7·9·10단계</span>는 답변을 받은 뒤 '인용·표기 점검'을, <span class='text-blue-600 font-semibold'>3·4·9단계</span>는 다른 AI와의 교차 검증을 권장합니다(4단계는 문법 판단이 많습니다). <b>교차 검증</b>은 같은 단계 질문에 다른 AI가 낸 답과 대조하는 선택 점검이고, <b>독립 검증</b>은 다른 AI가 결과를 8가지 점검 대상으로 검토하는 절차로 <b>9단계 뒤 기본 1회</b> 합니다(4단계 독립 검증은 원할 때만). 9단계의 '확인됨'은 (가) 입력란에 넣은 본문(관련 구절 포함)의 문구를 옮겼거나, (나) 자료의 구체적 쪽이나 발췌 문장을 옮겼거나, (다) 검증자가 자료의 해당 문구를 대어 확인했거나(‘지적 없음’만으로는 아님) 여러분이 직접 확인했을 때만 인정됩니다. <span class='text-red-700 font-semibold'>2단계 난제 표 뒤, 4단계 끝, 9단계 뒤</span>에는 <b>확인 지점 ①②③</b>이 있어 AI가 멈추고 여러분의 판단을 기다립니다. 답을 받을 때마다 <b>‘검증’ 탭의 ‘답변 검사’</b>에 붙여 넣어 인용, 쪽 표기, 자료 번호를 대조하고, 9단계 판정 전에는 <b>증거 점검표</b>를, 9단계 뒤에는 <b>독립 검증</b>을 한 번 거치십시오. 개역개정 인용의 최종 기준은 대한성서공회 본문입니다.";
+const FLOW_SHORT = "<span class='font-extrabold text-slate-800'>축약 4단계</span> · <b>① 본문과 난제</b> → <b>② 어휘와 구조</b> → <b>③ 구속사 연결과 잠정 판정</b> → <b>④ 명제와 적용</b>. 매주 설교 준비와 실습을 위한 방식입니다. 단계마다 답 끝의 <b>'확인할 곳 3가지'</b>를 직접 확인하십시오. <span class='text-blue-600 font-semibold'>②·③단계</span>는 '인용·표기 점검'과 교차 검증을 권장합니다(②는 문법 판단이 많습니다). ③단계의 판정은 모두 <b>잠정</b>이고, 표의 확인 상태는 모두 ‘확인 필요’로 시작합니다. 여러분이 ‘검증’ 탭의 증거 점검표에서 직접 대조해 바꾸고, ③단계 뒤에 독립 검증을 한 번 거치십시오. ①②③단계 뒤에는 <b>확인 지점</b>이 있어 AI가 멈추고 여러분의 판단을 기다립니다. 주일 본설교, 시리즈 기획, 쟁점이 무거운 본문은 정밀 10단계를 쓰십시오. 답을 받을 때마다 <b>‘검증’ 탭의 ‘답변 검사’</b>에 붙여 넣어 인용, 쪽 표기, 자료 번호를 대조하십시오. 개역개정 인용의 최종 기준은 대한성서공회 본문입니다.";
 const START_BODY_SHORT = [
   "지금부터 [해당 본문]을 다음 4단계로 연구합니다: ① 본문과 난제, ② 어휘와 구조, ③ 구속사 연결과 잠정 판정, ④ 명제와 적용. 질문에 나오는 단계 번호는 이 목록을 가리킵니다.",
   "[진행 원칙]",
   "- 각 단계에서는 그 단계의 질문에만 답하십시오. 판정은 ③단계에서 '잠정 판정'으로만 하고, 설교 적용은 ④단계에서만 다루십시오.",
+  "- 다음 단계는 사용자가 그 단계의 질문을 붙여 넣을 때만 시작하십시오. 확인 지점에서 사용자가 답하면 그 답을 반영해 표만 고치고 멈추십시오.",
   "- 앞 단계의 표는 다시 쓰지 말고 '①단계 참조'처럼 표시하십시오. 점검에서 고친 내용과 표기 방식은 이후 단계에도 계속 따르십시오.",
   "- 답변 끝에 다음 단계 안내나 추가 질문을 권하는 문구를 붙이지 마십시오.",
   "[공통 규칙]",
@@ -563,13 +883,14 @@ const START_BODY_SHORT = [
   "③ 성경과 원문 인용: 따옴표 안의 성경 본문은 제공된 개역개정 본문에서 한 글자도 바꾸지 말고 옮기십시오. 제공되지 않은 구절은 따옴표로 인용하지 말고 장절만 적으십시오(예: '사 43:2 참조'). 기억에 의존해 인용하면 '확인 필요'를 붙여도 오류가 됩니다. 히브리어·헬라어 문구도 제공된 원문에서만 옮기고, 제공되지 않은 본문의 낱말은 사전형(어근)만 쓰고 '(원문 확인 필요)'를 붙이십시오. 원어를 직접 옮긴 것은 '사역'으로 표시하고, 논증에 맞추려고 번역어를 바꾸지 마십시오.",
   "④ 구분: 학자의 견해와 이 분석의 추론을 구분해 표시하십시오. 질문이 요구하지 않은 제안이나 설교 적용은 덧붙이지 마십시오.",
   "⑤ 단정 금지: 학자마다 다르거나 불확실하면 견해별로 제시하고, 각 견해는 그 지지자가 인정할 이름과 형태로 서술하십시오.",
-  "⑥ 형식: 서론 없이 본론부터 쓰고, 비교가 필요한 내용은 표로 정리하십시오."
+  "⑥ 형식: 서론 없이 본론부터 쓰고, 비교가 필요한 내용은 표로 정리하십시오.",
+  "[선이해 격리] 교재 가이드·공과·설교 원고 같은 선이해 자료는 ③단계 판정 전에는 올리지도 인용하지도 마십시오. 그런 자료가 대화에 올라오면 열거나 인용하지 말고 그 사실만 알리십시오."
 ];
-const SHORT_LENGTH = "⑧ [분량] 각 단계 답변은 '확인할 곳' 표를 빼고 1,500자 안팎으로 쓰십시오. 표는 두 개 이내로 하고, 생략한 세부 사항이 있으면 생략했다고 밝히십시오.";
-const RULE_REMINDER_SHORT = "[규칙 상기] 시작 지침의 진행 원칙과 공통 규칙을 지키십시오. 따옴표 안의 개역개정과 원문은 제공된 본문(소스 파일이나 [자료])에서 그대로 옮기고, 제공되지 않은 구절은 인용하지 말고 장절만 적으며, 쪽은 확인한 것만 쓰십시오(아니면 절 주석 위치). 자료는 ①단계 목록의 번호와 저자명으로만 표시하고, 목록에 없는 번호를 새로 만들지 말며, 목록에 없는 문헌은 '자료 외'로 표시하십시오. 답변은 1,500자 안팎으로 쓰십시오.";
+const SHORT_LENGTH = "⑧ [분량] 각 단계 답변은 '확인할 곳' 표를 빼고 1,500자 안팎으로 쓰십시오. 표는 두 개 이내로 하고(필수 표: 확인할 곳·병행 대조는 제외), 생략한 세부 사항이 있으면 생략했다고 밝히십시오.";
+const RULE_REMINDER_SHORT = "[규칙 상기] 시작 지침의 진행 원칙과 공통 규칙을 지키십시오. 다음 단계는 그 단계 질문을 받을 때만 시작하십시오. 따옴표 안의 개역개정과 원문은 제공된 본문(소스 파일이나 [입력])에서 그대로 옮기고, 제공되지 않은 구절은 인용하지 말고 장절만 적으며, 쪽은 확인한 것만 쓰십시오(아니면 절 주석 위치). 자료는 ①단계 목록의 번호와 저자명으로만 표시하고, 목록에 없는 번호를 새로 만들지 말며, 목록에 없는 문헌은 '자료 외'로 표시하십시오. 답변은 1,500자 안팎으로 쓰십시오.";
 const HANDOFF_SHORT = "[①단계 인계] 먼저 ①단계 난제 표에서 이 단계로 넘겨진 증거를 난제 번호별로 '난제n: 증거 / 이 증거가 지지하는 견해 / 한계'로 한두 줄씩 처리하십시오. 이 처리에서는 '확인했다', '입증한다' 같은 결론 표현을 쓰지 마십시오. 넘겨진 증거가 없으면 '인계 없음'이라고 쓰십시오. 증거가 어떤 견해를 '지지한다'고 쓰려면 그 증거가 그 견해의 핵심 주장(예: 인물의 정체)에 직접 관련되어야 합니다. 주제만 비슷하면 '지지하는 견해 없음(주제적 배경)'으로 쓰십시오.";
 const GRADES_SHORT = "등급: A 신약이 인용 공식을 쓰거나 축자적으로 인용한 경우(그 신약 구절을 직접 적은 경우에만), B 명백한 암시, C 정경적·모형론적 추론, D 근거 없는 알레고리(배제). '[해당 본문] 쪽 근거 단어' 칸이 비면 '연결 없음'으로 쓰십시오. 신약 구절이 다른 구약 본문을 인용하면 그 출처를 밝히고, 그 인용을 [해당 본문]의 A 근거로 쓰지 마십시오. 연결은 신약 본문이 실제로 다루는 사건이나 주제로만 분류하고, 근거 단어가 ①단계 난제의 특정 견해에 기대면 '난제n 견해X에 의존'이라고 적으십시오.";
-const VERDICT_SHORT = "끝으로 ①단계 난제마다 잠정 판정을 '난제, 채택한 견해, 결정적 근거(단계와 절·자료), 확인 상태, 남는 불확실성' 표로 쓰십시오. 확인 상태의 기본값은 '확인 필요'이며, 제공된 개역개정·원문의 해당 문구를 그대로 옮겼거나 자료의 구체적인 쪽을 댄 경우에만 '확인됨'으로 쓰십시오. 신앙고백은 판정의 근거로 쓰지 마십시오. 견해를 합쳐 채택하려면 두 견해의 전제가 양립하는지 먼저 밝히십시오. 견해를 합치거나 고칠 때 2단계에서 정한 견해의 내용을 바꿔 쓰지 마십시오. 예를 들어 인물의 정체에 관한 견해를 '모형론적으로 가리킨다'는 견해로 바꾸면 그것은 다른 견해입니다. 이런 경우 원래 견해의 판정(채택, 기각, 보류)을 먼저 밝히고, 바뀐 내용은 '새 견해'로 따로 이름 붙여 근거와 함께 쓰십시오.";
+const VERDICT_SHORT = "끝으로 ①단계 난제마다 잠정 판정을 '난제, 채택한 견해, 결정적 근거(단계와 절·자료), 확인 상태, 남는 불확실성' 표로 쓰십시오. 확인 상태 칸은 모든 행을 '확인 필요'로 쓰고, 스스로 '확인됨'으로 표시하지 마십시오. '확인됨'은 사용자가 다음 조건 가운데 하나를 직접 대조해 바꿉니다: " + GROUNDS + ". 신앙고백은 판정의 근거로 쓰지 마십시오. 견해를 합쳐 채택하려면 두 견해의 전제가 양립하는지 먼저 밝히십시오. 견해를 합치거나 고칠 때 ①단계에서 정한 견해의 내용을 바꿔 쓰지 마십시오. 예를 들어 인물의 정체에 관한 견해를 '모형론적으로 가리킨다'는 견해로 바꾸면 그것은 다른 견해입니다. 이런 경우 원래 견해의 판정(채택, 기각, 보류)을 먼저 밝히고, 바뀐 내용은 '새 견해'로 따로 이름 붙여 근거와 함께 쓰십시오. 끝으로 이 본문에서 실제로 생길 수 있는 위험한 교리 오류 1–2개와 그 근거 절을 적으십시오.";
 function buildShort4() {
   const a = currentAudience;
   const label = AUDIENCES[a].label;
@@ -577,19 +898,19 @@ function buildShort4() {
   const audience = a === 'all'
     ? "청중은 여러 세대가 함께 듣는 주일 낮 예배입니다. 직설법에서 명령법으로 이어지는 설교 개요(대지 2–3개)와 온 회중을 위한 적용 3가지를 제시하십시오. "
     : "청중은 '" + label + "'입니다. 직설법에서 명령법으로 이어지는 설교 개요(대지 2–3개, 대지마다 이 세대의 삶에 닿는 적용)와 이 세대를 위한 구체적 적용 3가지를 제시하십시오. 세대의 특성은 예시로만 쓰고 본문에서 출발하십시오. ";
-  const tail = "명령법은 본문의 명령과 권고에서 끌어오고 근거 절을 표시하십시오. 본문에 명령이 없으면 그 사실을 밝히고, 부정·금지 구문이나 다른 사람의 말을 인용한 구절을 회중에게 주는 명령으로 바꾸지 마십시오. ③단계의 잠정 판정과 어긋나는 적용은 쓰지 마십시오. 판정을 보류했거나 '확인 필요'인 해석(예: 인물의 정체)을 설교 주제, 개요, 적용에서 사실처럼 쓰지 마십시오. 그리스도와의 연결은 ③단계 등급표가 허락하는 범위에서만 쓰고, C등급은 그렇다고 밝히십시오. 끝으로 위에서 쓴 적용을 한 줄씩 그대로 옮겨 '근거 절, 그 절에서 동작의 주체(하나님인가 백성인가), 직설법 근거' 표로 점검하고, 하나님이 하시는 일을 회중의 의무로 바꿨거나 약속을 명령으로 바꿨으면 '수정 필요'와 수정안을 쓰십시오. 점검에서 '수정 필요'로 판정한 적용이 있으면, 표 아래에 '최종 적용 목록'을 만들어 수정안으로 바꾼 적용을 다시 쓰고, 개요·활동·질문에도 같은 문장이 있으면 함께 고치십시오.";
+  const tail = "사용자가 증거 점검표를 붙여 주면 그 확인 상태를 따르십시오. 잠정 판정에 기대는 주제·대지·적용에는 '잠정'을 붙이고, 석의 명제는 본문 문구로 확인된 내용만으로 쓰십시오. 명령법은 본문의 명령과 권고에서 끌어오고 근거 절을 표시하십시오. 본문에 명령이 없으면 그 사실을 밝히고, 부정·금지 구문이나 다른 사람의 말을 인용한 구절을 회중에게 주는 명령으로 바꾸지 마십시오. ③단계의 잠정 판정과 어긋나는 적용은 쓰지 마십시오. 판정을 보류했거나 '확인 필요'인 해석(예: 인물의 정체)을 설교 주제, 개요, 적용에서 사실처럼 쓰지 마십시오. 그리스도와의 연결은 ③단계 등급표가 허락하는 범위에서만 쓰고, C등급은 그렇다고 밝히십시오. 끝으로 위에서 쓴 적용을 한 줄씩 그대로 옮겨 '근거 절, 그 절에서 동작의 주체(하나님인가 백성인가), 직설법 근거' 표로 점검하고, 하나님이 하시는 일을 회중의 의무로 바꿨거나 약속을 명령으로 바꿨으면 '수정 필요'와 수정안을 쓰십시오. 점검에서 '수정 필요'로 판정한 적용이 있으면, 표 아래에 '최종 적용 목록'을 만들어 수정안으로 바꾼 적용을 다시 쓰고, 개요·활동·질문에도 같은 문장이 있으면 함께 고치십시오.";
   return head + audience + tail;
 }
 const SHORT_STAGES = [
   { id:101, cat:"①단계", title:"본문과 난제", flags:true,
-    ot:"[해당 본문]의 단락 경계와 앞뒤 문맥, 책 안에서의 위치를 3줄 이내로 밝히십시오. 개역개정·MT·LXX 사이에 장절이나 내용의 차이가 있고 그것이 해석에 영향을 줄 때만 한두 줄로 적으십시오. 이어서 해석이 가장 크게 갈리는 난제를 1–2개 골라 '난제1, 난제2'로 번호를 붙이고, '견해, 주장자(제공된 자료에서), 핵심 논거, 약점, 판정에 필요한 증거와 다룰 단계(② 또는 ③)' 표 하나로 정리하십시오. 난제는 [해당 본문] 안의 절에서만 고르십시오. 약점은 그 견해의 지지자도 인정할 만한 내용으로 쓰십시오. 이 단계에서는 판정하지 마십시오. 끝으로 이 본문을 다루는 제공된 자료에 '자료1, 자료2…' 번호를 붙여 '자료 번호, 저자, 자료명' 목록을 만드십시오(본문 자료 제외). 이후 단계는 이 번호와 저자명을 함께 씁니다.",
-    nt:"[해당 본문]의 단락 경계와 앞뒤 문맥, 책 안에서의 위치를 3줄 이내로 밝히십시오. 개역개정과 헬라어 원문 사이에 절 구분이나 중요한 이문이 있고 그것이 해석에 영향을 줄 때만 한두 줄로 적으십시오. 이어서 해석이 가장 크게 갈리는 난제를 1–2개 골라 '난제1, 난제2'로 번호를 붙이고, '견해, 주장자(제공된 자료에서), 핵심 논거, 약점, 판정에 필요한 증거와 다룰 단계(② 또는 ③)' 표 하나로 정리하십시오. 난제는 [해당 본문] 안의 절에서만 고르십시오. 약점은 그 견해의 지지자도 인정할 만한 내용으로 쓰십시오. 이 단계에서는 판정하지 마십시오. 끝으로 이 본문을 다루는 제공된 자료에 '자료1, 자료2…' 번호를 붙여 '자료 번호, 저자, 자료명' 목록을 만드십시오(본문 자료 제외). 이후 단계는 이 번호와 저자명을 함께 씁니다." },
+    ot:"[해당 본문]의 단락 경계와 앞뒤 문맥, 책 안에서의 위치를 3줄 이내로 밝히십시오. 개역개정·MT·LXX 사이에 장절이나 내용의 차이가 있고 그것이 해석에 영향을 줄 때만 한두 줄로 적으십시오. 이어서 해석이 가장 크게 갈리는 난제를 1–2개 골라 '난제1, 난제2'로 번호를 붙이고(판정에 따라 설교 주제가 바뀌는 난제를 먼저 고르십시오), '견해, 주장자(제공된 자료에서), 핵심 논거, 약점, 판정에 필요한 증거와 다룰 단계(② 또는 ③)' 표 하나로 정리하십시오. 난제는 [해당 본문] 안의 절에서만 고르십시오. 약점은 그 견해의 지지자도 인정할 만한 내용으로 쓰십시오. 이 단계에서는 판정하지 마십시오. 끝으로 이 본문을 다루는 제공된 자료에 '자료1, 자료2…' 번호를 붙여 '자료 번호, 저자, 자료명' 목록을 만드십시오(본문 자료 제외). 이후 단계는 이 번호와 저자명을 함께 씁니다. 제공된 자료가 없으면 자료 목록을 만들지 말고, 학자 이름에는 '자료 외'라고 적으십시오.",
+    nt:"[해당 본문]의 단락 경계와 앞뒤 문맥, 책 안에서의 위치를 3줄 이내로 밝히십시오. 개역개정과 헬라어 원문 사이에 절 구분이나 중요한 이문이 있고 그것이 해석에 영향을 줄 때만 한두 줄로 적으십시오. 이어서 해석이 가장 크게 갈리는 난제를 1–2개 골라 '난제1, 난제2'로 번호를 붙이고(판정에 따라 설교 주제가 바뀌는 난제를 먼저 고르십시오), '견해, 주장자(제공된 자료에서), 핵심 논거, 약점, 판정에 필요한 증거와 다룰 단계(② 또는 ③)' 표 하나로 정리하십시오. 난제는 [해당 본문] 안의 절에서만 고르십시오. 약점은 그 견해의 지지자도 인정할 만한 내용으로 쓰십시오. 이 단계에서는 판정하지 마십시오. 끝으로 이 본문을 다루는 제공된 자료에 '자료1, 자료2…' 번호를 붙여 '자료 번호, 저자, 자료명' 목록을 만드십시오(본문 자료 제외). 이후 단계는 이 번호와 저자명을 함께 씁니다. 제공된 자료가 없으면 자료 목록을 만들지 말고, 학자 이름에는 '자료 외'라고 적으십시오." },
   { id:102, cat:"②단계", title:"어휘와 구조", handoff:true, module:"structure", verify:true, cross:true, crossRequired:true,
     ot:"[해당 본문]에서 해석에 가장 중요한 단어 3개를 골라 '단어(원어), 이 본문의 형태, 같은 책과 정경의 용례, 문맥적 의미' 표로 정리하십시오. 의미는 실제 용례로 정하고 어원으로 정하지 마십시오. 개역개정의 번역에서 원문의 뉘앙스가 달라진 곳을 1–2곳 지적하되, 동사 형태와 구문(와우 연속법, 예언적 완료 등)의 근거를 대십시오. 이어서 본문의 구조를 간단한 구조도로 제시하고, 구조상의 중심과 논리적 정점을 구분하십시오. 본문에서 실제로 확인되는 장치만 쓰고, 교차대칭은 짝마다 공유하는 원어 단어가 있을 때만 쓰십시오. 끝으로 후대의 개념(신약과 교리의 개념, 현대의 사고)을 원래 청중에게 투사하는 읽기를 1–2개 골라 '본문 요소, 시대착오적 독법, 원래 청중이 들은 의미' 표로 적으십시오.",
     nt:"[해당 본문]에서 해석에 가장 중요한 단어 3개를 골라 '단어(원어), 이 본문의 형태, 같은 저자와 LXX·신약의 용례, 문맥적 의미' 표로 정리하십시오. 의미는 실제 용례로 정하고 어원으로 정하지 마십시오. 개역개정의 번역에서 원문의 뉘앙스가 달라진 곳을 1–2곳 지적하되, 시제·태·법과 구문(분사, 접속사, 논리 연결어)의 근거를 대십시오. 이어서 본문의 구조(논증 흐름이나 내러티브 흐름)를 간단한 구조도로 제시하고, 구조상의 중심과 논리적 정점을 구분하십시오. 본문에서 실제로 확인되는 장치만 쓰십시오. 끝으로 후대의 개념(후대 교리, 현대의 사고)을 원래 독자에게 투사하는 읽기를 1–2개 골라 '본문 요소, 시대착오적 독법, 원래 독자가 들은 의미' 표로 적으십시오." },
   { id:103, cat:"③단계", title:"구속사 연결과 잠정 판정", handoff:true, module:"christ", verify:true, cross:true,
     ot:"먼저 [해당 본문]이 스스로 말하지 않는 것(한계)을 한두 줄로 밝히십시오. 이어서 이 본문과 신약의 연결을 '신약 본문, 연결 방식(인용, 암시, 모티프), [해당 본문] 쪽 근거 단어(원어와 절), 신약 쪽 근거 단어, 등급' 표로 정리하십시오. " + GRADES_SHORT + " " + VERDICT_SHORT,
-    nt:"먼저 [해당 본문]이 스스로 말하지 않는 것(한계)을 한두 줄로 밝히십시오. 이어서 이 본문의 구약 배경과 그리스도 안의 성취를 '관련 본문, 연결 방식(인용, 암시, 모티프), [해당 본문] 쪽 근거 단어(원어와 절), 관련 본문 쪽 근거 단어, 등급' 표로 정리하고, 그리스도께서 이루신 일(직설법)과 독자에게 주어진 명령(명령법)의 관계를 본문의 논리 연결어로 밝히십시오. " + GRADES_SHORT.replace("신약이 인용 공식을", "본문이 인용 공식을").replace("그 신약 구절을", "그 구절을") + " " + VERDICT_SHORT },
+    nt:"먼저 [해당 본문]이 스스로 말하지 않는 것(한계)을 한두 줄로 밝히십시오. 구약과의 연결은 '관련 본문, 연결 방식(인용, 암시, 모티프), 인용한 사람(본문 안 화자), 어휘 일치, 강도(강, 중, 약)' 표로만 적고 A–D 등급을 매기지 마십시오. 본문 안 인물(예: 마귀)이 인용한 구약은 '인용(화자)'로 적고, 그 쓰임(왜곡 등)은 판정 칸에서 다루십시오. 이어서 성육신, 고난과 죽음, 부활과 승천, 성령 강림, 재림이 이 본문과 어떻게 이어지는지 '사건, [해당 본문] 쪽 근거 단어(원어와 절), 신약 본문, 등급'으로 적되, 연결 있는 사건만 한 줄씩 쓰고 나머지는 '연결 없음: …' 한 줄로 묶으십시오. 그리스도께서 이루신 일(직설법)과 독자에게 주어진 명령(명령법)의 관계를 본문의 논리 연결어로 밝히십시오. " + GRADES_SHORT + " " + VERDICT_SHORT },
   { id:104, cat:"④단계", title:"명제와 적용", verify:true, pulpit:true, audience:true,
     ot: buildShort4, nt: buildShort4 }
 ];
@@ -622,11 +943,11 @@ function renderDepth() {
 // module: 장르 모듈 삽입 위치(structure/background/christ), flags: 권별 경고 삽입 여부
 // handoff: 2단계 난제 인계 지시 삽입, verify: 점검·교차 검증 버튼 표시, cross: 교차 검증 특히 권장
 const STAGE2_TAIL = "난제마다 '견해, 주장자, 핵심 논거, 약점'을 정리하되, 난제 정리는 표 하나로만 하고 표 밖에서 같은 내용을 다시 서술하지 마십시오. 이 단계에서는 판정하지 마십시오. 표의 마지막 열에는 그 난제를 판정하는 데 필요한 증거와 그 증거를 다룰 단계를 다음 목록에서 골라 적으십시오: 3 본문 비평, 4 번역 대조와 핵심 어휘, 5 문학 구조, 6 역사·사회문화 배경, 7 정경 상호텍스트, 8 구속사와 기독론. 이 열은 3–8단계가 그대로 이어받아 처리할 작업 목록이므로 구체적으로 쓰십시오(예: '이 동사의 구약 용례 → 4'). 반드시 난제별로 정리하고, 판정(9단계)과 설교(10단계)는 넣지 마십시오.";
-const STAGE2_HEAD = "학자는 1단계 자료 목록의 번호와 함께 적고(목록에 없으면 '자료 외'), 학자마다 그 분류에 넣은 근거를 한 줄씩 적고, 아래 난제 표에서 견해의 주장자로 쓰는 학자는 모두 이 분류에 포함하십시오. 이어서 해석이 가장 첨예하게 갈리는 난제(Crux Interpretum)를 골라 '난제1, 난제2…'로 번호를 붙이십시오. 난제는 연구 범위([해당 본문]) 안의 절에서만 고르고, 범위 밖 문맥은 근거로만 쓰십시오. 각 견해의 약점은 그 견해의 지지자도 인정할 만한 내용으로 쓰고, 반대 진영의 평가를 약점으로 쓰지 마십시오. ";
+const STAGE2_HEAD = "제공된 자료가 없으면 학자 대신 견해 이름으로 분류하고, 주장자는 '자료 외'로 적으십시오. 학자는 1단계 자료 목록의 번호와 함께 적고(목록에 없으면 '자료 외'), 학자마다 그 분류에 넣은 근거를 한 줄씩 적고, 아래 난제 표에서 견해의 주장자로 쓰는 학자는 모두 이 분류에 포함하십시오. 이어서 해석이 가장 첨예하게 갈리는 난제(Crux Interpretum)를 골라 '난제1, 난제2…'로 번호를 붙이십시오. 난제는 연구 범위([해당 본문]) 안의 절에서만 고르고, 범위 밖 문맥은 근거로만 쓰십시오. 각 견해의 약점은 그 견해의 지지자도 인정할 만한 내용으로 쓰고, 반대 진영의 평가를 약점으로 쓰지 마십시오. ";
 const STAGE8_TAIL_OT = "'이미와 아직'을 구분하고, 이스라엘과 교회의 관계에 관한 주요 견해를 각 견해의 지지자가 인정할 이름과 형태로, 자료 속 대표자와 함께 제시하십시오(판정은 9단계). 마지막으로 이 본문을 도덕적 교훈으로 축소하는 독법과 복음 중심 독법을 표로 대조하고, 복음 중심 독법에서 순종과 율법이 차지하는 자리도 한 행으로 밝히십시오.";
 const GRADES = "검토 결과는 '사건, [해당 본문] 쪽 근거 단어(원어와 절), 신약 본문, 신약 쪽 근거 단어(원어), 등급' 표로 정리하십시오. 등급: A 신약이 인용 공식을 쓰거나 축자적으로 인용한 경우, B 신약의 명백한 암시, C 정경적·모형론적 추론, D 근거 없는 알레고리(배제). A는 인용 공식이나 축자 일치를 보이는 신약 구절을 직접 적은 경우에만 주고, 7단계에서 '암시'로 분류한 연결은 B 이하로 하십시오. '[해당 본문] 쪽 근거 단어' 칸이 비면 그 연결은 '연결 없음'입니다. 신약 구절이 다른 구약 본문을 인용하는 경우, 그 인용은 [해당 본문]의 A 근거가 될 수 없습니다. 사건 칸(성육신, 고난과 죽음, 부활과 승천, 성령 강림, 재림)의 이름을 바꾸거나 괄호로 뜻을 넓히지 마십시오. 신약 본문이 그 사건 자체를 다루지 않으면 그 칸은 '연결 없음'입니다. 근거 단어가 2단계 난제의 특정 견해(예: 인물의 정체)에 기대면 '난제n 견해X에 의존'이라고 적으십시오.";
 const CONFESSIONS = "이어서 해석이 개혁주의 표준문서(웨스트민스터 신앙고백, 대·소요리문답, 하이델베르크 요리문답, 벨직 신앙고백, 도르트 신경)와 조화되는지 점검하십시오. 관련 조항이 있는 문서만 다루고, 조항은 번호와 함께 그 내용을 자료나 원문에서 확인해 인용하며, 확인할 수 없으면 '조항 확인 필요'로 표시하십시오. 조항에 없는 내용을 덧붙여 요약하지 마십시오.";
-const STAGE9_HEAD = "판정에 앞서 '증거 점검표'를 만드십시오. 2단계의 난제마다 '결정적 근거, 그 근거를 다룬 단계, 확인 근거, 확인 상태'를 적으십시오. 확인 상태의 기본값은 '확인 필요'입니다. '확인됨'은 확인 근거 칸에 (가) 제공된 개역개정·원문의 해당 문구를 그대로 옮겼거나, (나) 자료의 구체적인 쪽(첫 쪽이나 쪽 범위가 아닌 쪽)을 댔거나, (다) 사용자가 점검이나 교차 검증에서 확인했다고 밝힌 경우에만 쓰십시오. 앞 단계에서 '확인 필요'나 '원문 확인 필요'로 남은 근거는 '확인 필요'입니다. 신앙고백은 판정의 근거로 쓰지 말고 판정 뒤의 조화 점검에만 쓰십시오. 이어서 난제마다 이 연구의 판정(채택한 견해, 결정적 근거, 남는 불확실성)을 제시하십시오. 핵심 근거가 '확인 필요'인 난제는 '잠정 판정'으로 표시하십시오. 견해를 합치거나 고칠 때 2단계에서 정한 견해의 내용을 바꿔 쓰지 마십시오. 예를 들어 인물의 정체에 관한 견해를 '모형론적으로 가리킨다'는 견해로 바꾸면 그것은 다른 견해입니다. 이런 경우 원래 견해의 판정(채택, 기각, 보류)을 먼저 밝히고, 바뀐 내용은 '새 견해'로 따로 이름 붙여 근거와 함께 쓰십시오. 서로 다른 견해를 합쳐 채택하려면, 먼저 두 견해의 핵심 전제(예: 핵심 낱말이 가리키는 대상)가 양립하는지 검토하고, 양립하지 않으면 하나를 고르거나 판정을 보류하십시오. '남는 불확실성'에는 판정을 바꿀 수 있는 실제 쟁점을 적으십시오. ";
+const STAGE9_HEAD = "판정에 앞서 '증거 점검표'를 만드십시오. 2단계의 난제마다 '결정적 근거, 그 근거를 다룬 단계, 확인 근거, 확인 상태'를 적으십시오. 확인 상태의 기본값은 '확인 필요'입니다. '확인됨'은 다음 경우에만 쓰십시오: " + GROUNDS + ". 주석의 첫 쪽이나 쪽 범위는 구체적 쪽이 아닙니다. 앞 단계에서 '확인 필요'나 '원문 확인 필요'로 남은 근거는 '확인 필요'입니다. 신앙고백은 판정의 근거로 쓰지 말고 판정 뒤의 조화 점검에만 쓰십시오. 이어서 난제마다 이 연구의 판정(채택한 견해, 결정적 근거, 남는 불확실성)을 제시하십시오. 핵심 근거가 '확인 필요'인 난제는 '잠정 판정'으로 표시하십시오. 견해를 합치거나 고칠 때 2단계에서 정한 견해의 내용을 바꿔 쓰지 마십시오. 예를 들어 인물의 정체에 관한 견해를 '모형론적으로 가리킨다'는 견해로 바꾸면 그것은 다른 견해입니다. 이런 경우 원래 견해의 판정(채택, 기각, 보류)을 먼저 밝히고, 바뀐 내용은 '새 견해'로 따로 이름 붙여 근거와 함께 쓰십시오. 서로 다른 견해를 합쳐 채택하려면, 먼저 두 견해의 핵심 전제(예: 핵심 낱말이 가리키는 대상)가 양립하는지 검토하고, 양립하지 않으면 하나를 고르거나 판정을 보류하십시오. '남는 불확실성'에는 판정을 바꿀 수 있는 실제 쟁점을 적으십시오. ";
 function buildStage10() {
   const a = currentAudience;
   const label = AUDIENCES[a].label;
@@ -634,13 +955,13 @@ function buildStage10() {
   const audience = a === 'all'
     ? "청중은 여러 세대가 함께 듣는 주일 낮 예배입니다. 다음을 제시하십시오: 설교 주제 5가지(각각 주어와 서술어를 갖춘 20자 이내의 문장), 직설법에서 명령법으로 이어지는 설교 개요, 온 회중을 위한 통합 적용과 교육 목표, 그리고 어린이·청소년·청년·30–40대·50–60대·70대 이상에게 각각 한두 문장의 적용 메모. "
     : "청중은 '" + label + "'입니다. 이 세대를 위해 다음을 자세히 제시하십시오: 설교 주제 5가지(각각 주어와 서술어를 갖춘 20자 이내의 문장), 직설법에서 명령법으로 이어지는 설교 개요(대지마다 이 세대의 삶에 닿는 적용 포함), 교육 목표(아는 것, 태도, 행동), 구체적 적용 3–5가지, 소그룹 나눔 질문 3개, 이 세대에서 빠지기 쉬운 도덕주의 적용과 그 대안" + ((a === 'child' || a === 'teen') ? ", 공과 활동 방향 2가지" : "") + ". 세대의 특성은 일반화가 아니라 예시로만 쓰고, 언제나 본문에서 출발하십시오. ";
-  const tail = "명령법은 가능하면 본문에 있는 명령과 권고에서 끌어오고 근거 절을 표시하십시오. 본문에 명령이 없으면 그 사실을 밝히고, 부정·금지 구문이나 다른 사람의 말을 인용한 구절을 회중에게 주는 명령으로 바꾸지 마십시오. 9단계의 판정과 어긋나는 적용은 쓰지 마십시오. 9단계에서 판정을 보류했거나 다르게 판정한 해석(예: 인물의 정체, 사건의 성격)을 설교 주제, 개요, 적용, 활동, 질문에서 사실처럼 쓰지 마십시오. 그리스도와의 연결은 8단계 등급표가 허락하는 범위에서만 쓰고, C등급(정경적·모형론적 추론)은 그렇다고 밝히십시오. 끝으로 위에서 쓴 적용을 한 줄씩 그대로 옮겨 점검 표를 만드십시오(가상의 예를 만들지 마십시오): 근거 절, 그 절에서 동작의 주체(하나님인가 백성인가), 명령이 같은 본문의 직설법에 근거하는지, 원래 청중과 오늘의 회중을 잇는 원리. 근거 절의 주체가 하나님인데 적용에서 행위자를 회중으로 바꿨거나, 본문의 약속을 명령으로 바꿨다면 '수정 필요'로 표시하고 수정안을 제시하십시오. 점검에서 '수정 필요'로 판정한 적용이 있으면, 표 아래에 '최종 적용 목록'을 만들어 수정안으로 바꾼 적용을 다시 쓰고, 개요·활동·질문에도 같은 문장이 있으면 함께 고치십시오.";
+  const tail = "사용자가 증거 점검표를 붙여 주면 그 확인 상태를 따르십시오. 명령법은 가능하면 본문에 있는 명령과 권고에서 끌어오고 근거 절을 표시하십시오. 본문에 명령이 없으면 그 사실을 밝히고, 부정·금지 구문이나 다른 사람의 말을 인용한 구절을 회중에게 주는 명령으로 바꾸지 마십시오. 9단계의 판정과 어긋나는 적용은 쓰지 마십시오. 9단계에서 판정을 보류했거나 다르게 판정한 해석(예: 인물의 정체, 사건의 성격)을 설교 주제, 개요, 적용, 활동, 질문에서 사실처럼 쓰지 마십시오. 그리스도와의 연결은 8단계 등급표가 허락하는 범위에서만 쓰고, C등급(정경적·모형론적 추론)은 그렇다고 밝히십시오. 끝으로 위에서 쓴 적용을 한 줄씩 그대로 옮겨 점검 표를 만드십시오(가상의 예를 만들지 마십시오): 근거 절, 그 절에서 동작의 주체(하나님인가 백성인가), 명령이 같은 본문의 직설법에 근거하는지, 원래 청중과 오늘의 회중을 잇는 원리. 근거 절의 주체가 하나님인데 적용에서 행위자를 회중으로 바꿨거나, 본문의 약속을 명령으로 바꿨다면 '수정 필요'로 표시하고 수정안을 제시하십시오. 점검에서 '수정 필요'로 판정한 적용이 있으면, 표 아래에 '최종 적용 목록'을 만들어 수정안으로 바꾼 적용을 다시 쓰고, 개요·활동·질문에도 같은 문장이 있으면 함께 고치십시오.";
   return head + audience + tail;
 }
 const STAGES = [
   { id:1, cat:"1단계", title:"본문 확정과 자료 점검", flags:true,
-    ot:"[해당 본문]의 문학 단위 경계를 형식 표지(도입·종결 공식, 화자·청자 전환, 장르 전환, 수미상관)로 확정하십시오. 장 구분과 실제 문학 단위가 다르면 그 사실과 학자별 경계 설정의 차이를 밝히고, 앞뒤 문맥과 책 전체에서의 위치를 설명하십시오. 개역개정, 마소라 본문(MT/BHS), 칠십인역(LXX) 사이의 장절 번호 차이와 본문의 위치(장 번호, 절 순서)만 표로 정리하고, 판본별 절 번호 차이를 본문에서 언급했다면 반드시 표에도 넣으십시오. 이문의 내용은 3단계에서 다룹니다. 이어서 제공된 자료 가운데 이 본문을 다루는 자료의 목록을 '자료 번호(자료1, 자료2…), 저자, 자료명, 다루는 범위'로 빠짐없이 만드십시오. 본문 자료(개역개정·원문 파일)는 이 목록에 넣지 마십시오. 이후 단계에서는 이 번호와 저자명을 함께 쓰고 번호를 새로 매기지 않으며, 이 목록에 있는 자료만 출처로 쓰고, 목록에 없는 문헌은 '자료 외'로 표시합니다. 학자의 분류는 2단계에서 다룹니다. 끝으로 목록을 확인한 뒤, 자료에 실제로 빠져 있는 주요 해석 관점이 있으면 지적하십시오.",
-    nt:"[해당 본문]의 문학 단위 경계를 형식 표지(도입·종결 표현, 화자·청자 전환, 장르 전환, 수미상관)로 확정하십시오. 장 구분과 실제 문학 단위가 다르면 그 사실과 학자별 경계 설정의 차이를 밝히고, 앞뒤 문맥과 책 전체에서의 위치를 설명하십시오. 개역개정과 헬라어 원문(NA28) 사이의 절 구분 차이와 병행 본문(공관 병행, 같은 저자의 병행 단락)의 위치만 표로 정리하십시오. 이문의 내용은 3단계에서 다룹니다. 이어서 제공된 자료 가운데 이 본문을 다루는 자료의 목록을 '자료 번호(자료1, 자료2…), 저자, 자료명, 다루는 범위'로 빠짐없이 만드십시오. 본문 자료(개역개정·원문 파일)는 이 목록에 넣지 마십시오. 이후 단계에서는 이 번호와 저자명을 함께 쓰고 번호를 새로 매기지 않으며, 이 목록에 있는 자료만 출처로 쓰고, 목록에 없는 문헌은 '자료 외'로 표시합니다. 학자의 분류는 2단계에서 다룹니다. 끝으로 목록을 확인한 뒤, 자료에 실제로 빠져 있는 주요 해석 관점이 있으면 지적하십시오." },
+    ot:"[해당 본문]의 문학 단위 경계를 형식 표지(도입·종결 공식, 화자·청자 전환, 장르 전환, 수미상관)로 확정하십시오. 장 구분과 실제 문학 단위가 다르면 그 사실과 학자별 경계 설정의 차이를 밝히고, 앞뒤 문맥과 책 전체에서의 위치를 설명하십시오. 개역개정, 마소라 본문(MT/BHS), 칠십인역(LXX) 사이의 장절 번호 차이와 본문의 위치(장 번호, 절 순서)만 표로 정리하고, 판본별 절 번호 차이를 본문에서 언급했다면 반드시 표에도 넣으십시오. 이문의 내용은 3단계에서 다룹니다. 이어서 제공된 자료 가운데 이 본문을 다루는 자료의 목록을 '자료 번호(자료1, 자료2…), 저자, 자료명, 다루는 범위'로 빠짐없이 만드십시오. 본문 자료(개역개정·원문 파일)는 이 목록에 넣지 마십시오. 이후 단계에서는 이 번호와 저자명을 함께 쓰고 번호를 새로 매기지 않으며, 이 목록에 있는 자료만 출처로 쓰고, 목록에 없는 문헌은 '자료 외'로 표시합니다. 학자의 분류는 2단계에서 다룹니다. 끝으로 목록을 확인한 뒤, 자료에 실제로 빠져 있는 주요 해석 관점이 있으면 지적하십시오. 제공된 자료가 없으면 자료 목록을 만들지 말고, 학자 이름에는 '자료 외'라고 적으십시오.",
+    nt:"[해당 본문]의 문학 단위 경계를 형식 표지(도입·종결 표현, 화자·청자 전환, 장르 전환, 수미상관)로 확정하십시오. 장 구분과 실제 문학 단위가 다르면 그 사실과 학자별 경계 설정의 차이를 밝히고, 앞뒤 문맥과 책 전체에서의 위치를 설명하십시오. 개역개정과 헬라어 원문(NA28) 사이의 절 구분 차이와 병행 본문(공관 병행, 같은 저자의 병행 단락)의 위치만 표로 정리하십시오. 이문의 내용은 3단계에서 다룹니다. 이어서 제공된 자료 가운데 이 본문을 다루는 자료의 목록을 '자료 번호(자료1, 자료2…), 저자, 자료명, 다루는 범위'로 빠짐없이 만드십시오. 본문 자료(개역개정·원문 파일)는 이 목록에 넣지 마십시오. 이후 단계에서는 이 번호와 저자명을 함께 쓰고 번호를 새로 매기지 않으며, 이 목록에 있는 자료만 출처로 쓰고, 목록에 없는 문헌은 '자료 외'로 표시합니다. 학자의 분류는 2단계에서 다룹니다. 끝으로 목록을 확인한 뒤, 자료에 실제로 빠져 있는 주요 해석 관점이 있으면 지적하십시오. 제공된 자료가 없으면 자료 목록을 만들지 말고, 학자 이름에는 '자료 외'라고 적으십시오." },
   { id:2, cat:"2단계", title:"해석 지형과 난제 (판정 보류)",
     ot:"제공된 자료에서 [해당 본문]을 다룬 학자들을 해석학적 전제와 방법에 따라 분류하십시오. 분류 기준을 먼저 밝히되, 언약 이해(예: 언약신학, 세대주의 등)도 기준에 포함하십시오. " + STAGE2_HEAD + "해석 난제뿐 아니라 본문 비평 난제(이문 선택)와 신약 인용 난제(인용 형태, 성취 방식)도 후보로 검토하십시오. " + STAGE2_TAIL,
     nt:"제공된 자료에서 [해당 본문]을 다룬 학자들을 해석학적 전제와 비평적 입장에 따라 분류하십시오. 분류 기준을 먼저 밝히십시오. " + STAGE2_HEAD + "해석 난제뿐 아니라 본문 비평 난제(이문 선택)와 구약 인용 난제(인용 형태, 원래 문맥과의 관계)도 후보로 검토하십시오. " + STAGE2_TAIL },
@@ -841,6 +1162,7 @@ function updateAll() {
   const pf = PLATFORM[document.getElementById('platform-select').value] || PLATFORM.notebooklm;
   document.getElementById('platform-tip').innerText = pf.tip;
   renderCards(raw, passage, testament, genre, flags);
+  renderV8();
 }
 
 function composePrompt(stage, passage, testament, genre, flags) {
@@ -854,85 +1176,48 @@ function composePrompt(stage, passage, testament, genre, flags) {
   if (stage.flags && flags.length) flags.forEach(f => segs.push({ kind: "flag", text: f }));
   if (stage.module && genre && GENRES[genre][stage.module]) segs.push({ kind: "module", text: GENRES[genre][stage.module] });
   if (stage.pulpit && document.getElementById('pulpit-toggle').checked) segs.push({ kind: "pulpit", text: PULPIT_SEG });
+  if (stage.audience && document.getElementById('precomp-toggle').checked) segs.push({ kind: "precomp", text: PRECOMP(short ? "③단계" : "9단계") });
   if (!stage.optional) segs.push({ kind: "check3", text: CHECK3 + ((stage.pulpit && document.getElementById('pulpit-toggle').checked) ? CHECK3_PULPIT : "") });
   if (document.getElementById('rules-toggle').checked) segs.push({ kind: "rules", text: short ? RULE_REMINDER_SHORT : RULE_REMINDER });
+  const stop = stopFor(stage.id);
+  if (stop) segs.push({ kind: "stop", text: stop.ai(stopNextLabel(stage.id)) });
   return segs;
 }
 
 // ───────────────────────── v7.6: 답변 검사 ─────────────────────────
-function normKo(t) { return t.replace(/[\s.,;:!?·'"“”‘’()\[\]{}\-–—…「」『』<>*_\\|]/g, ""); }
-function stripMarks(t) { return t.normalize("NFD").replace(/[֑-ׇ̀-ͯ͂̓ͅ]/g, "").replace(/[־־]/g, " ").toLowerCase(); }
 function srcMaxKey() { return "exegesis-v7-srcmax::" + document.getElementById('passage-input').value.trim(); }
 function saveSrcMax() { try { localStorage.setItem(srcMaxKey(), document.getElementById('srcmax-input').value); } catch (e) {} }
 function loadSrcMax() { try { const v = localStorage.getItem(srcMaxKey()); document.getElementById('srcmax-input').value = v || ""; } catch (e) {} }
+function firstsKey() { return "exegesis-v8-firsts::" + document.getElementById('passage-input').value.trim(); }
+function saveFirsts() { try { localStorage.setItem(firstsKey(), document.getElementById('firsts-input').value); } catch (e) {} }
+function loadFirsts() { try { const v = localStorage.getItem(firstsKey()); document.getElementById('firsts-input').value = v || ""; } catch (e) {} }
 function runCheck() {
   const ans = document.getElementById('check-input').value;
   const out = document.getElementById('check-result');
   if (!ans.trim()) { out.innerHTML = ""; return; }
   const val = id => document.getElementById('text-' + id).value;
-  const base = normKo(val('nkrv') + "\n" + val('rel'));
-  const lineOf = i => ans.slice(0, i).split("\n").length;
-  const rows = [];
-  const add = (type, i, target, fix) => rows.push([type, i < 0 ? "-" : lineOf(i), target, fix]);
-  // 자료 목록 자동 인식(1단계 답변)
-  const listed = [...ans.matchAll(/^[\s\-*•·]*자료\s?(\d{1,3})\s*[,，:.)]\s*\S/gm)].map(m => parseInt(m[1], 10));
-  if (listed.length >= 2) { document.getElementById('srcmax-input').value = Math.max(...listed); saveSrcMax(); }
-  // 1) 개역개정 인용
-  if (base) {
-    const spans = [];
-    const check = (q, s, e) => {
-      const tagged = /확인\s*필요/.test(ans.slice(e, e + 40));
-      const pieces = q.split(/…|\.\.\./).filter(p => normKo(p).length >= 4);
-      const bad = pieces.filter(p => !base.includes(normKo(p)));
-      if (!bad.length) return;
-      if (tagged) add("제공되지 않은 구절 인용 (규칙 ③)", s, "「" + q.slice(0, 60) + "」", "따옴표 인용을 지우고 장절만 남기십시오");
-      else add("제공된 개역개정에 없음 (오인용 또는 미제공 구절)", s, "「" + q.slice(0, 60) + "」", "다른 부분: " + bad.map(b => b.trim().slice(0, 25)).join(" / "));
-    };
-    for (const m of ans.matchAll(/「([^」\n]{2,400})」/g)) { spans.push([m.index, m.index + m[0].length]); check(m[1], m.index, m.index + m[0].length); }
-    for (const m of ans.matchAll(/["“]([^"”\n]{6,300})["”]/g)) {
-      if (spans.some(([a, b]) => m.index >= a && m.index < b)) continue;
-      if (!/[가-힣]{2}/.test(m[1])) continue;
-      // 표 칸·설명문 오인 방지: 칸 구분자, 장절 표기, 괄호, 빗금, 영문 단어가 든 것은 성경 인용으로 보지 않는다
-      if (/[|()\/]|\d+\s*:\s*\d+|[A-Za-z]{3,}/.test(m[1]) || m[1].length > 300) continue;
-      const ctx = ans.slice(Math.max(0, m.index - 30), m.index) + ans.slice(m.index + m[0].length, m.index + m[0].length + 30);
-      if (/\d{1,3}\s*:\s*\d{1,3}|\d{1,3}\s*절|개역개정|NKRV/.test(ctx)) check(m[1], m.index, m.index + m[0].length);
-    }
-  }
-  // 2) 쪽 범위
-  for (const m of ans.matchAll(/(?<![\d:])\d{1,4}\s*쪽?\s*[–\-~]\s*\d{1,4}\s*쪽/g)) add("쪽 범위를 쪽수처럼 표기", m.index, m[0], "그 내용이 실린 쪽이나 절 주석 위치로");
-  // 3) 자료 번호
-  const max = parseInt(document.getElementById('srcmax-input').value, 10);
-  if (max > 0) {
-    const seen = new Set();
-    for (const m of ans.matchAll(/자료\s?(\d{1,3})(?!\d)/g)) {
-      const n = parseInt(m[1], 10);
-      if (n > max && !seen.has(n)) { seen.add(n); add("자료 목록에 없는 번호", m.index, m[0], `1단계 목록은 자료1–자료${max}입니다. 저자를 확인해 바로잡거나 '자료 외'로`); }
-    }
-  }
-  // 4) 원어 낱말(제공 원문에 없는 것)
-  const origBase = stripMarks(val('orig') + " " + val('lxx'));
-  if (origBase.trim()) {
-    const miss = new Set();
-    for (const m of ans.matchAll(/[א-ת][א-ת֑-ׇ]{2,}|[Ͱ-Ͽἀ-῿]{3,}/g)) {
-      const w = stripMarks(m[0]).replace(/\s/g, "");
-      if (w.length >= 3 && !origBase.replace(/\s/g, "").includes(w)) miss.add(m[0]);
-    }
-    if (miss.size) add("제공된 원문에 없는 원어 낱말", -1, [...miss].slice(0, 8).join(", ") + (miss.size > 8 ? ` 외 ${miss.size - 8}개` : ""), "사전형(어근)이면 '(원문 확인 필요)' 표시를, 본문 인용이면 원문과 대조하십시오");
-  }
-  // 5) 깨진 문자
-  const broken = [...ans.matchAll(/[ ]|Ã.|Â|ð/g)];
-  if (broken.length) add("깨진 문자", broken[0].index, broken.slice(0, 5).map(m => m[0]).join(" "), "원문이나 자료에서 다시 옮기십시오");
-  if (!base) rows.unshift(["개역개정 미입력", "-", "", "위 입력란에 개역개정을 넣어야 인용을 대조할 수 있습니다"]);
-  // 같은 유형·같은 대상은 한 줄로 묶는다
-  const merged = [], idx = {};
-  rows.forEach(r => { const k = r[0] + "\u0000" + r[2]; if (k in idx) merged[idx[k]][4]++; else { idx[k] = merged.length; merged.push([...r, 1]); } });
-  const summary = {}; merged.forEach(r => summary[r[0]] = (summary[r[0]] || 0) + r[4]);
-  const shown = merged.slice(0, 40).map(r => [r[0], r[1] + (r[4] > 1 ? ` 외 ${r[4] - 1}곳` : ""), r[2], r[3]]);
-  rows.length = 0; shown.forEach(r => rows.push(r));
-  const head = Object.entries(summary).map(([k, v]) => `${k} ${v}`).join(" · ");
-  out.innerHTML = rows.length
-    ? `<p class="font-bold text-emerald-900 mb-2">${escapeHtml(head)}${merged.length > 40 ? " (앞 40종만 표시)" : ""}</p><div class="overflow-x-auto"><table class="w-full text-xs bg-white rounded-lg"><thead><tr class="text-left text-emerald-900"><th class="p-2">유형</th><th class="p-2">줄</th><th class="p-2">대상</th><th class="p-2">조치</th></tr></thead><tbody>${rows.map(r => `<tr class="border-t border-emerald-100">${r.map(c => `<td class="p-2 align-top">${escapeHtml(String(c))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`
-    : `<p class="font-bold text-emerald-900">문제 없음 (인용·쪽 범위·자료 번호·깨진 문자 기준)</p>`;
+  const res = checkAnswer(ans, {
+    nkrv: val('nkrv'), rel: val('rel'), orig: val('orig'), lxx: val('lxx'),
+    srcMax: document.getElementById('srcmax-input').value,
+    firsts: document.getElementById('firsts-input').value,
+    stage: document.getElementById('check-stage').value,
+    teamFormat: document.getElementById('team-format').checked
+  });
+  if (res.listedMax) { document.getElementById('srcmax-input').value = res.listedMax; saveSrcMax(); }
+  const summary = {}; res.rows.forEach(r => summary[r[0]] = (summary[r[0]] || 0) + r[4]);
+  const total = res.rows.reduce((a, r) => a + r[4], 0);
+  const item = (r, tone) => `<li class="p-3 rounded-lg bg-white border ${tone === 'note' ? 'border-slate-200' : 'border-red-200'}">
+      <div class="flex flex-wrap items-center gap-2 mb-1"><span class="text-xs font-extrabold px-2 py-0.5 rounded ${tone === 'note' ? 'bg-slate-100 text-slate-700' : 'bg-red-100 text-red-800'}">${escapeHtml(r[0])}</span>
+      <span class="text-xs text-slate-500">줄 ${escapeHtml(String(r[1]))}${r[4] > 1 ? ` 외 ${r[4] - 1}곳` : ""}</span></div>
+      ${r[2] ? `<p class="text-xs text-slate-800 break-anywhere">${escapeHtml(String(r[2]))}</p>` : ""}
+      <p class="text-xs text-emerald-800 mt-1 break-anywhere">→ ${escapeHtml(String(r[3]))}</p></li>`;
+  const shown = res.rows.slice(0, 40);
+  let html = total
+    ? `<p class="font-bold text-red-800 mb-1">고칠 곳 ${total}건</p><p class="text-xs text-emerald-900 mb-2">${escapeHtml(Object.entries(summary).map(([k, v]) => `${k} ${v}`).join(" · "))}${res.rows.length > 40 ? " (앞 40종만 표시)" : ""}</p><ol class="space-y-2">${shown.map(r => item(r)).join("")}</ol>`
+    : `<p class="font-bold text-emerald-900">문제 없음 (인용·쪽 표기·자료 번호·원어·깨진 문자${parseInt(document.getElementById('check-stage').value, 10) ? "·단계 규칙" : ""} 기준)</p>`;
+  if (res.notes.length) html += `<p class="font-bold text-slate-700 mt-4 mb-2">참고 (문제로 세지 않음) ${res.notes.reduce((a, r) => a + r[4], 0)}건</p><ol class="space-y-2">${res.notes.slice(0, 20).map(r => item(r, 'note')).join("")}</ol>`;
+  html += `<p class="text-xs text-emerald-800 mt-3">이 검사는 인용과 표기만 봅니다. 고친 뒤 한 번만 다시 검사하고, 근거가 없으면 기억으로 고치지 말고 ‘확인 필요’로 남기십시오.</p>`;
+  out.innerHTML = html;
 }
 
 function deliveryPanelHtml(passage) {
@@ -948,11 +1233,11 @@ function deliveryPanelHtml(passage) {
     currentChunks = buildChunks(passage);
     const extra = document.getElementById('text-rel').value.trim();
     return `<div class="mt-4 pt-4 border-t border-slate-700">
-      <p class="text-xs font-bold text-slate-300 mb-2">자료 보내기 · 시작 지침 다음에 차례로 보내고, 마지막에 자료 확인을 보내십시오</p>
+      <p class="text-xs font-bold text-slate-300 mb-2">입력 보내기 · 시작 지침 다음에 차례로 보내고, 마지막에 입력 확인을 보내십시오</p>
       <div class="flex flex-wrap gap-2">${currentChunks.map((c, i) => `<button onclick="copyChunk(${i})" title="${c.length}자" class="${btn}">자료 ${i + 1}/${currentChunks.length}</button>`).join("")}
-      <button onclick="copyCheckMsg()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all">자료 확인</button>
+      <button onclick="copyCheckMsg()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all">입력 확인</button>
       ${extra ? `<button onclick="copyExtra()" class="${btn}" title="관련 구절이 필요한 단계(1·7단계 또는 ①·③단계)에서 보내십시오">관련 구절 [추가 자료]</button>` : ""}</div>
-      <p class="text-xs text-slate-400 mt-2">'자료 확인' 표의 절 수가 입력한 본문과 다르면, 붙여 넣기가 잘린 것입니다. 그 자료를 다시 보내십시오.</p></div>`;
+      <p class="text-xs text-slate-400 mt-2">'입력 확인' 표의 절 수가 입력한 본문과 다르면, 붙여 넣기가 잘린 것입니다. 그 자료를 다시 보내십시오.</p></div>`;
   }
   return "";
 }
@@ -965,7 +1250,8 @@ function renderCards(raw, passage, testament, genre, flags) {
     </div>
     <p class="font-bold mb-2 text-base">새 대화(또는 새 노트북 채팅)를 시작할 때 맨 먼저 붙여 넣으십시오.</p>
     <div class="bg-slate-800 p-4 rounded-xl text-slate-200 text-sm leading-relaxed">${escapeHtml(startPromptText).replace(/\n/g, "<br>")}</div>
-    <p class="text-xs text-slate-400 mt-3">AI가 '확인' 대신 본문 분석을 시작하면, 그 답은 버리고 1단계부터 진행하십시오. 대화를 새로 열었으면 시작 지침을 다시 붙여 넣으십시오.</p>
+    <p class="text-xs text-amber-300 mt-3">⚠ 교재 가이드·공과·설교 원고 같은 선이해 자료는 ${currentDepth === 'short' ? '③단계' : '9단계'} 판정 전에는 이 대화에 올리지도 인용하지도 마십시오.</p>
+    <p class="text-xs text-slate-400 mt-1">AI가 '확인' 대신 본문 분석을 시작하면, 그 답은 버리고 1단계부터 진행하십시오. 대화를 새로 열었으면 시작 지침을 다시 붙여 넣으십시오.</p>
     ${deliveryPanelHtml(passage)}
     <div class="mt-4 pt-4 border-t border-slate-700">
       <p class="text-xs font-bold text-slate-300 mb-2">후속 요청 · 어느 단계에서든 답변을 받은 뒤 필요할 때 붙여 넣으십시오</p>
@@ -991,7 +1277,7 @@ function renderCards(raw, passage, testament, genre, flags) {
         const safe = escapeHtml(passage).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         h = h.replace(new RegExp(safe, 'g'), `<span class="highlight-text">${escapeHtml(passage)}</span>`);
       }
-      const cls = { flag: "seg-flag", module: "seg-module", rules: "seg-rules", handoff: "seg-handoff", pulpit: "seg-pulpit", literal: "seg-literal", audience: "seg-pulpit", check3: "seg-check" }[s.kind] || "";
+      const cls = { flag: "seg-flag", module: "seg-module", rules: "seg-rules", handoff: "seg-handoff", pulpit: "seg-pulpit", literal: "seg-literal", audience: "seg-pulpit", check3: "seg-check", stop: "seg-stop", precomp: "seg-handoff" }[s.kind] || "";
       return cls ? `<div class="mt-3 p-3 rounded-lg text-xs ${cls}">${h}</div>` : `<div>${h}</div>`;
     }).join("");
 
@@ -1015,14 +1301,24 @@ function renderCards(raw, passage, testament, genre, flags) {
         </div>
       </div>
       <p class="text-slate-900 font-bold mb-3 text-base leading-snug">${escapeHtml(stage.title)}</p>
+      ${stopBefore(stage.id) ? `<div class="mb-3 p-3 rounded-xl seg-stop"><label for="stopans-${stage.id}" class="block text-xs font-extrabold mb-1">[확인 지점 답] 확인 지점 ${stopBefore(stage.id).n}에서 정한 것 — 복사할 때 이 단계 질문 맨 앞에 붙습니다(비우면 ‘그대로 둡니다.’)</label><textarea id="stopans-${stage.id}" rows="2" oninput="saveStopAns(${stage.id}, this.value)" class="w-full px-3 py-2 bg-white border border-red-200 rounded-lg text-xs" placeholder="예: 난제 하나 더: 9절">${escapeHtml(progress['ans-' + stage.id] || "")}</textarea></div>` : ""}
       <div class="bg-slate-50 p-4 rounded-xl text-slate-600 text-sm leading-relaxed border border-slate-100 flex-grow">${segHtml}</div>
+      ${stage.audience ? `<div class="mt-2 flex flex-wrap items-center gap-2"><button onclick="copyEvidenceForChat()" class="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg text-xs font-bold transition-all">저장한 증거 점검표 복사 (이 단계 앞에 붙이기)</button><span class="text-xs text-slate-500">‘검증’ 탭에서 고친 확인 상태를 AI가 따르게 합니다</span></div>` : ""}
+      ${stage.audience && !document.getElementById('precomp-toggle').checked ? `<p class="mt-2 text-xs text-fuchsia-800">교재·공과·설교 원고를 쓰신다면 ‘선이해 대조’를 켜십시오. <button onclick="document.getElementById('precomp-toggle').checked = true; updateAll()" class="underline font-bold">켜기</button></p>` : ""}
       ${stage.verify ? `<div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
-        <span class="text-xs font-bold ${stage.crossRequired ? 'text-red-700' : 'text-blue-700'}">${stage.crossRequired ? '교차 검증 필수 권장 (문법 판단)' : stage.cross ? '점검과 교차 검증 권장' : '인용·표기 점검 권장'}</span>
+        <span class="text-xs font-bold ${stage.crossRequired ? 'text-red-700' : 'text-blue-700'}">${stage.crossRequired ? '교차 검증 특히 권장 (문법 판단)' : stage.cross ? '점검과 교차 검증 권장' : '인용·표기 점검 권장'}</span>
         <button onclick="copyCheck('verify')" title="${escapeHtml(VERIFY.text)}" class="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 px-3 py-1 rounded-lg text-xs font-bold transition-all">${VERIFY.label}</button>
         <button onclick="copyCheck('cross')" title="${escapeHtml(CROSS.text)}" class="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 px-3 py-1 rounded-lg text-xs font-bold transition-all">${CROSS.label}</button>
       </div>` : ""}`;
     const lower = currentDepth === 'short' ? (stage.id === 104 || stage.optional) : stage.id >= 10;
     (lower ? grid2 : grid).appendChild(card);
+    const stop = stopFor(stage.id);
+    if (stop) {
+      const sc = document.createElement('div');
+      sc.className = "md:col-span-2 p-5 rounded-2xl seg-stop";
+      sc.innerHTML = stopCardHtml(stop, stage.id);
+      (lower ? grid2 : grid).appendChild(sc);
+    }
   });
 }
 
@@ -1045,7 +1341,7 @@ function writeClipboard(text, msg) {
 }
 function copyStage(id) {
   const p = currentPrompts.find(x => x.id === id);
-  if (p) writeClipboard(p.text, "복사 완료! 채팅창에 붙여넣으세요.");
+  if (p) writeClipboard((stopBefore(id) ? stopAnsPrefix(id) : "") + p.text, "복사 완료! 채팅창에 붙여넣으세요.");
 }
 function copyFollowup(i) { writeClipboard(FOLLOWUPS[i].text, "'" + FOLLOWUPS[i].label + "' 요청 복사 완료!"); }
 function copyCheck(kind) { const f = kind === 'verify' ? VERIFY : CROSS; writeClipboard(f.text, "'" + f.label + "' 요청 복사 완료!"); }
@@ -1056,8 +1352,435 @@ function copyAll() {
   writeClipboard(all, currentDepth === 'short' ? "시작 지침과 ①–④단계 전체 복사 완료!" : "시작 지침과 1–10단계 전체 복사 완료!");
 }
 
+
+// ───────────────────────── v8.0: 탭 ─────────────────────────
+const TABS = ['study', 'verify', 'havruta'];
+let currentTab = 'study';
+try { const t = localStorage.getItem("exegesis-v8-tab"); if (TABS.includes(t)) currentTab = t; } catch (e) {}
+function setTab(t, keepScroll) {
+  if (!TABS.includes(t)) return;
+  currentTab = t;
+  try { localStorage.setItem("exegesis-v8-tab", t); } catch (e) {}
+  TABS.forEach(k => {
+    document.getElementById('tab-' + k).classList.toggle('hidden', k !== t);
+    document.getElementById('tab-btn-' + k).classList.toggle('active', k === t);
+  });
+  if (t === 'verify') renderIndep();
+  if (t === 'havruta') renderHav();
+  if (!keepScroll) { const nav = document.getElementById('tab-btn-study'); if (nav) nav.scrollIntoView({ block: "start", behavior: "smooth" }); }
+}
+function currentPassageRaw() { return document.getElementById('passage-input').value.trim(); }
+
+// ───────────────────────── v8.0: 확인 지점 ①②③ ─────────────────────────
+// 석의 팀 과정: ① 2단계 난제 표 뒤, ② 4단계 끝(A구간 끝), ③ 9단계 판정·검증 뒤
+const STOPS = [
+  { n: "①", full: 2, short: 101, title: "난제 표",
+    user: "난제 표의 요지를 보고, 더하거나 뺄 난제가 있는지 정하십시오. 난제가 본문 안의 절에서 골랐는지, 분류 기준이 전제·방법·언약 이해로 정해져 있는지(청중이나 적용 목표에 맞춘 축이 아닌지)도 보십시오.",
+    ai: next => `[확인 지점 ①] 이 답변을 쓴 뒤 여기서 멈추십시오. 난제 표의 요지를 3줄로 보여 주고, 사용자에게 “더하거나 뺄 난제가 있습니까?”라고 물으십시오. 사용자가 답하기 전에는 ${next}로 넘어가지 말고, 사용자가 정한 대로 난제 표를 고친 뒤 그 표를 이후 단계의 기준으로 삼으십시오. 사용자가 답한 뒤에도 다음 단계를 스스로 쓰지 마십시오.` },
+  { n: "②", full: 4, short: 102, title: "문법 판단",
+    user: "문법 판단의 요점을 보고 받아들일지 정하십시오. 동사 형태·구문 판단마다 문법 근거가 붙어 있는지 보고, 이 판단에 대해 독립 검증을 받을지 정하십시오(4단계 독립 검증은 요청할 때만 합니다).",
+    ai: next => `[확인 지점 ②] 이 답변을 쓴 뒤 여기서 멈추십시오. 지금까지의 문법 판단 요점을 3줄로 보여 주고, 사용자에게 “이 문법 판단을 받아들입니까, 아니면 독립 검증을 먼저 받겠습니까?”라고 물으십시오. 사용자가 답하기 전에는 ${next}로 넘어가지 마십시오. 사용자가 답한 뒤에도 다음 단계를 스스로 쓰지 마십시오.` },
+  { n: "③", full: 9, short: 103, title: "증거 점검표·판정·검증 결과",
+    user: "증거 점검표, 판정, 독립 검증 결과를 보고 승인하거나 고칠 것을 정하십시오. ‘확인됨’마다 (가)(나)(다) 가운데 하나가 실제로 있는지, 핵심 근거가 ‘확인 필요’인 난제가 ‘잠정 판정’으로 표시되었는지 보십시오.",
+    ai: next => `[확인 지점 ③] 이 답변을 쓴 뒤 여기서 멈추십시오. 증거 점검표, 판정, 독립 검증 결과(있으면)를 요약해 보여 주고, 사용자에게 “승인하거나 고칠 판정이 있습니까?”라고 물으십시오. 독립 검증을 받지 않았으면 ‘독립 검증 없음’이라고만 쓰고, 스스로 한 점검을 검증이라 부르지 마십시오. 사용자가 답하기 전에는 ${next}로 넘어가지 마십시오. 사용자가 직접 확인했다고 밝힌 근거만 ‘확인됨’ (다)로 바꾸십시오. 사용자가 답한 뒤에도 다음 단계를 스스로 쓰지 마십시오.` }
+];
+function stopFor(stageId) {
+  const short = currentDepth === 'short';
+  return STOPS.find(s => (short ? s.short : s.full) === stageId) || null;
+}
+// 확인 지점 바로 다음 단계(축약 ②③④ · 정밀 3·5·10): 카드 맨 앞 ‘[확인 지점 답]’ 칸 — 값은 이 본문의 진행 표시 저장값(storageKey)에 함께 둔다
+function stopBefore(stageId) {
+  const short = currentDepth === 'short';
+  return STOPS.find(s => (short ? s.short : s.full) + 1 === stageId) || null;
+}
+function saveStopAns(id, v) {
+  const passage = document.getElementById('passage-input').value.trim();
+  if (!passage) return;
+  const p = loadProgress(passage); p['ans-' + id] = v; saveProgress(passage, p);
+}
+function stopAnsPrefix(id) {
+  const el = document.getElementById('stopans-' + id);
+  return "[확인 지점 답] " + ((el && el.value.trim()) || "그대로 둡니다.") + "\n\n";
+}
+function stopNextLabel(stageId) {
+  if (currentDepth === 'short') return ({ 101: "②단계", 102: "③단계", 103: "④단계" })[stageId] || "다음 단계";
+  return (stageId + 1) + "단계";
+}
+function stopCardHtml(st, stageId) {
+  const where = currentDepth === 'short' ? ({ 101: "①단계", 102: "②단계", 103: "③단계" })[stageId] : stageId + "단계";
+  const btns = st.n === "③"
+    ? `<button onclick="setTab('verify'); setTimeout(() => document.getElementById('evidence-panel').scrollIntoView({behavior:'smooth'}), 50)" class="bg-white border border-red-300 text-red-800 px-3 py-1.5 rounded-lg text-xs font-bold">증거 점검표 열기</button>
+       <button onclick="openIndep('${currentDepth === 'short' ? '103' : '9'}')" class="bg-white border border-red-300 text-red-800 px-3 py-1.5 rounded-lg text-xs font-bold">독립 검증 요청문</button>`
+    : st.n === "②" && currentDepth !== 'short'
+      ? `<button onclick="openIndep('4')" class="bg-white border border-red-300 text-red-800 px-3 py-1.5 rounded-lg text-xs font-bold">4단계 독립 검증 요청문 (원할 때)</button>`
+      : `<button onclick="setTab('verify'); setTimeout(() => document.getElementById('check-panel').scrollIntoView({behavior:'smooth'}), 50)" class="bg-white border border-red-300 text-red-800 px-3 py-1.5 rounded-lg text-xs font-bold">답변 검사 열기</button>`;
+  return `<p class="text-sm font-extrabold mb-1">확인 지점 ${st.n} · ${escapeHtml(st.title)} <span class="font-normal text-xs">(${escapeHtml(where)} 답을 받은 뒤 · 다음 단계로 가기 전에)</span></p>
+    <p class="text-xs font-normal leading-relaxed">${escapeHtml(st.user)}</p>
+    <p class="text-xs font-bold leading-relaxed mt-1">확인 지점 답은 따로 보내지 말고 다음 단계 카드의 칸에 적어 함께 복사하십시오.</p>
+    <div class="flex flex-wrap gap-2 mt-3">${btns}</div>`;
+}
+function renderStopList() {
+  const el = document.getElementById('stop-list'); if (!el) return;
+  const short = currentDepth === 'short';
+  el.innerHTML = STOPS.map(st => `<div class="bg-white/70 rounded-xl p-3 border border-red-200"><p class="font-extrabold mb-1">확인 지점 ${st.n} · ${escapeHtml(st.title)}</p><p class="text-red-700 mb-1">${short ? ({ "①": "①단계 뒤", "②": "②단계 뒤", "③": "③단계 뒤" })[st.n] : ({ "①": "2단계 난제 표 뒤", "②": "4단계 끝", "③": "9단계 판정·검증 뒤" })[st.n]}</p><p class="leading-relaxed">${escapeHtml(st.user)}</p></div>`).join("");
+}
+
+// ───────────────────────── v8.0: 증거 점검표 ─────────────────────────
+const EV_STATUS = ["확인 필요", "확인됨(가)", "확인됨(나)", "확인됨(다)", "잠정 판정"];
+const AI_WORD = /\bAI\b|인공지능|챗GPT|ChatGPT|GPT|Claude|클로드|Gemini|제미나이|NotebookLM|노트북LM|Copilot|코파일럿|퍼플렉시티|Perplexity/i;
+const EV_MARK = /「[^」]{2,}」|['‘“"][^'’”"]{4,}['’”"]|자료\s?\d|\d+\s*쪽|[֐-׿]{3,}|[Ͱ-Ͽἀ-῿]{3,}/;
+let evRows = [], evPassage = null;
+function evKey(p) { return "exegesis-v8-evidence::" + p; }
+function loadEvidenceFor(passage) {
+  if (passage === evPassage) return;
+  evPassage = passage; evRows = [];
+  if (passage) { try { const v = JSON.parse(localStorage.getItem(evKey(passage)) || "[]"); if (Array.isArray(v)) evRows = v; } catch (e) {} }
+  renderEvidence();
+}
+function saveEvidence() {
+  const p = currentPassageRaw();
+  const store = document.getElementById('evidence-store');
+  if (!p) { if (store) store.innerText = "본문을 입력하면 이 본문의 점검표가 이 브라우저에 저장됩니다."; return; }
+  try { localStorage.setItem(evKey(p), JSON.stringify(evRows)); if (store) store.innerText = "‘" + p + "’ 점검표가 이 브라우저에 저장되었습니다(" + evRows.length + "행)."; }
+  catch (e) { if (store) store.innerText = "이 환경에서는 저장할 수 없습니다. 마크다운 표로 복사해 두십시오."; }
+}
+function evWarnings(r) {
+  const w = [], e = (r.e || "").trim(), st = r.st || "확인 필요";
+  if (!st.startsWith("확인됨")) return w;
+  if (!e) { w.push("‘확인됨’인데 확인 근거 칸이 비어 있습니다. 근거를 옮길 때까지 ‘확인 필요’로 두십시오."); return w; }
+  if (r.ai || (AI_WORD.test(e) && !EV_MARK.test(e)))
+    w.push("근거가 AI 답변뿐입니다. AI 답변만으로는 ‘확인됨’이 아닙니다. 본문·자료의 해당 문구를 직접 확인해 옮기거나 ‘확인 필요’로 두십시오.");
+  if (st === "확인됨(가)") {
+    if (!/「[^」]{2,}」|['‘“"][^'’”"]{2,}['’”"]|[֐-׿]{2,}|[Ͱ-Ͽἀ-῿]{2,}|개역개정|원문|nkrv|orig|rel/i.test(e))
+      w.push("(가)는 제공된 본문의 해당 문구를 확인 근거 칸에 그대로 옮긴 경우입니다. 문구를 옮겨 적으십시오.");
+    const base = normKo(document.getElementById('text-nkrv').value + "\n" + document.getElementById('text-rel').value);
+    if (base) for (const m of e.matchAll(/「([^」]{2,400})」/g)) {
+      const bad = m[1].split(/…|\.\.\./).filter(p => normKo(p).length >= 4 && !base.includes(normKo(p)));
+      if (bad.length) w.push("확인 근거의 「" + m[1].slice(0, 30) + "」가 입력한 개역개정·관련 구절에 없습니다.");
+    }
+  }
+  if (st === "확인됨(나)") {
+    if (/\d{1,4}\s*쪽?\s*[–\-~]\s*\d{1,4}\s*쪽/.test(e)) w.push("쪽 범위는 (나)의 근거가 아닙니다. 그 내용이 실린 쪽이나 발췌 문장을 적으십시오.");
+    else if (!/\d+\s*쪽|['‘“"][^'’”"]{4,}['’”"]|「[^」]{4,}」/.test(e)) w.push("(나)는 자료의 구체적 쪽을 댔거나 발췌 문장을 옮긴 경우입니다. 쪽이나 문장을 적으십시오.");
+  }
+  if (st === "확인됨(다)") {
+    if (!/「[^」]{2,}」|['‘“"][^'’”"]{4,}['’”"]|[\u0590-\u05FF]{3,}|[\u0370-\u03FF\u1F00-\u1FFF]{3,}/.test(e))
+      w.push("(다)는 검증자가 자료의 해당 문구를 대어 확인했거나 사용자가 직접 확인한 경우입니다. 확인한 자료의 문구를 「」나 따옴표로 확인 근거 칸에 옮기십시오(‘지적 없음’만으로는 ‘확인됨’이 아닙니다).");
+    if (!/검증|확인|직접|사용자|본인/.test(e)) w.push("누가 어떻게 확인했는지(검증자·사용자)도 적으십시오.");
+  }
+  return w;
+}
+function evSummary() {
+  const c = {}; EV_STATUS.forEach(s => c[s] = 0);
+  evRows.forEach(r => { c[r.st || "확인 필요"] = (c[r.st || "확인 필요"] || 0) + 1; });
+  const ok = c["확인됨(가)"] + c["확인됨(나)"] + c["확인됨(다)"];
+  const warn = evRows.filter(r => evWarnings(r).length).length;
+  let t = evRows.length ? `${evRows.length}행 · 확인됨 ${ok} · 확인 필요 ${c["확인 필요"]} · 잠정 판정 ${c["잠정 판정"]}` + (warn ? ` · 경고 ${warn}행` : "") : "아직 행이 없습니다. ‘행 추가’를 누르십시오.";
+  if (ok && !c["확인 필요"] && !c["잠정 판정"]) t += " · ⚠ 증거 자기 승인 의심: ‘확인 필요’·‘잠정 판정’이 하나도 없습니다. ‘확인됨’마다 (가)(나)(다)를 다시 대조하십시오.";
+  return t;
+}
+function renderEvidenceRowWarn(i) {
+  const el = document.getElementById('ev-warn-' + i); if (!el) return;
+  const w = evWarnings(evRows[i]);
+  el.innerHTML = w.map(x => `<p>⚠ ${escapeHtml(x)}</p>`).join("");
+  el.classList.toggle('hidden', !w.length);
+  document.getElementById('evidence-summary').innerText = evSummary();
+}
+function renderEvidence() {
+  const box = document.getElementById('evidence-rows'); if (!box) return;
+  const inp = "w-full px-3 py-2 bg-white border border-indigo-200 rounded-lg text-sm";
+  box.innerHTML = evRows.map((r, i) => `
+    <div class="bg-white/80 rounded-xl border border-indigo-200 p-3">
+      <div class="flex justify-between items-center mb-2"><span class="text-xs font-extrabold text-indigo-900">${i + 1}행</span>
+        <button onclick="removeEvidenceRow(${i})" class="text-xs text-indigo-500 hover:text-red-600 font-bold">삭제</button></div>
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+        <div class="md:col-span-4"><label class="block text-xs font-bold text-indigo-800 mb-1">결정적 근거</label><textarea rows="2" oninput="evSet(${i},'g',this.value)" class="${inp}" placeholder="예: 난제1 — 1절의 두 행위자">${escapeHtml(r.g || "")}</textarea></div>
+        <div class="md:col-span-2"><label class="block text-xs font-bold text-indigo-800 mb-1">다룬 단계</label><input type="text" value="${escapeHtml(r.s || "")}" oninput="evSet(${i},'s',this.value)" class="${inp}" placeholder="예: 4·7"></div>
+        <div class="md:col-span-4"><label class="block text-xs font-bold text-indigo-800 mb-1">확인 근거</label><textarea rows="2" oninput="evSet(${i},'e',this.value)" class="${inp}" placeholder="본문 문구 「…」, 자료n의 쪽·문장, 검증·확인한 사람">${escapeHtml(r.e || "")}</textarea></div>
+        <div class="md:col-span-2"><label class="block text-xs font-bold text-indigo-800 mb-1">확인 상태</label><select onchange="evSet(${i},'st',this.value)" class="${inp}">${EV_STATUS.map(s => `<option ${s === (r.st || "확인 필요") ? "selected" : ""}>${s}</option>`).join("")}</select>
+          <label class="flex items-center gap-1 mt-1 text-xs text-indigo-800 cursor-pointer"><input type="checkbox" ${r.ai ? "checked" : ""} onchange="evSet(${i},'ai',this.checked)" class="w-3.5 h-3.5 accent-indigo-700">근거가 AI 답변뿐</label></div>
+      </div>
+      <div id="ev-warn-${i}" class="hidden mt-2 p-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-800 font-semibold"></div>
+    </div>`).join("");
+  evRows.forEach((r, i) => renderEvidenceRowWarn(i));
+  document.getElementById('evidence-summary').innerText = evSummary();
+  saveEvidence();
+}
+function evSet(i, k, v) { if (!evRows[i]) return; evRows[i][k] = v; saveEvidence(); renderEvidenceRowWarn(i); renderIndep(); }
+function addEvidenceRow() { evRows.push({ g: "", s: "", e: "", st: "확인 필요", ai: false }); renderEvidence(); renderIndep(); }
+function removeEvidenceRow(i) { evRows.splice(i, 1); renderEvidence(); renderIndep(); }
+function clearEvidence() {
+  if (evRows.length && !confirm("이 본문의 증거 점검표를 모두 지울까요?")) return;
+  evRows = []; renderEvidence(); renderIndep();
+}
+function evCell(t) { return String(t || "").replace(/\|/g, "/").replace(/\s*\n\s*/g, " ").trim(); }
+function evMarkdown() {
+  if (!evRows.length) return "";
+  return "| 결정적 근거 | 다룬 단계 | 확인 근거 | 확인 상태 |\n|---|---|---|---|\n"
+    + evRows.map(r => "| " + [r.g, r.s, r.e, (r.st || "확인 필요") + (r.ai ? " (AI 답변뿐)" : "")].map(evCell).join(" | ") + " |").join("\n");
+}
+function copyEvidenceForChat() {
+  const t = evMarkdown();
+  if (!t) { showToast("‘검증’ 탭에 저장한 점검표가 없습니다"); return; }
+  writeClipboard("[증거 점검표] 아래는 사용자가 직접 대조해 확인 상태를 고친 점검표입니다. 이 확인 상태를 따르고, 분석하지 말고 '점검표 받음'이라고만 답하십시오.\n" + t, "증거 점검표 복사 완료! 이 단계 질문 앞에 붙여 넣으십시오.");
+}
+function copyEvidence() { const t = evMarkdown(); if (t) writeClipboard(t, "증거 점검표 복사 완료!"); else showToast("점검표에 행이 없습니다"); }
+function importEvidence() {
+  const t = document.getElementById('evidence-import').value;
+  let n = 0;
+  t.split(/\n/).forEach(line => {
+    if (!/^\s*\|/.test(line) || /^\s*\|\s*:?-{2,}/.test(line)) return;
+    const c = line.trim().replace(/^\||\|$/g, "").split("|").map(x => x.trim());
+    if (c.length < 2 || /결정적\s*근거/.test(c[0])) return;
+    evRows.push({ g: c[0] || "", s: c[1] || "", e: c[2] || "", st: "확인 필요", ai: true }); n++;
+  });
+  if (n) { document.getElementById('evidence-import').value = ""; renderEvidence(); renderIndep(); showToast(n + "행을 ‘확인 필요’로 가져왔습니다"); }
+  else showToast("가져올 표 행을 찾지 못했습니다");
+}
+
+// ───────────────────────── v8.0: 독립 검증 요청문 ─────────────────────────
+const INDEP_ITEMS = [
+  "① 원어 문법 판단",
+  "② 어원으로 의미를 정한 곳",
+  "③ 번역어를 조작한 곳",
+  "④ 인용/암시/모티프 분류 · 구약 연결에 A–D를 매겼는지(매기면 안 됨) · 다섯 사건 등급마다 본문 쪽 근거 단어가 있는지 — " + GRADES_SHORT,
+  "⑤ 근거 없이 견해를 채택한 곳",
+  "⑥ 앞 단계 오류를 전제로 삼은 곳",
+  "⑦ ‘확인됨’의 근거가 (가)(나)(다) 중 하나 이상을 충족하는지 — " + GROUNDS,
+  "⑧ 판정이 청중 메모·선이해 자료 쪽으로 기울었는지 — 반대 견해의 근거를 같은 무게로 다뤘는지, 분류 축·난제 설정이 청중이나 적용 목표에 맞춰져 있지 않은지"
+];
+const INDEP_TARGET = { "9": "9단계(판정과 교리 점검)", "4": "4단계(번역 대조와 핵심 어휘)", "103": "축약 ③단계(구속사 연결과 잠정 판정)" };
+let indepText = "";
+function buildIndepPrompt() {
+  const raw = currentPassageRaw(), passage = raw || "[해당 본문]";
+  const tgt = (document.getElementById('indep-target') || {}).value || "9";
+  const label = INDEP_TARGET[tgt] || INDEP_TARGET["9"];
+  const hasOrig = !!(document.getElementById('text-orig').value.trim() || document.getElementById('text-lxx').value.trim());
+  const L = [];
+  L.push(`[독립 검증 요청] 아래는 ${passage} 연구의 ${label} 답변입니다. 당신은 이 연구에 참여하지 않은 검증자입니다.`);
+  L.push("- 이 메시지에 든 [입력]과 [검증 대상]만 읽으십시오. 웹 조회, 검색, 다른 자료 탐색, 원문 재구성을 하지 마십시오.");
+  L.push("- 근거가 주어진 자료에 없으면 ‘확인 불가’로 적으십시오. 원문이 주어지지 않았으면 문법 항목은 ‘원문 미제공으로 생략’이라고만 적으십시오." + (hasOrig ? "" : " (이번 요청에는 원문이 없습니다.)"));
+  L.push("[점검 대상]");
+  INDEP_ITEMS.forEach(x => L.push(x.replace(/\[해당 본문\]/g, passage)));
+  L.push("[답변 형식]");
+  L.push("- 문제만 ‘위치 / 내용 / 문제 / 근거 / 수정안 / 확신도’ 표로, 2,000자 이내로 답하십시오.");
+  L.push("- 근거 칸에는 주어진 자료의 이름과 절(또는 자료 번호와 위치)을 적고, 그 자료의 해당 문구를 그대로 옮기십시오. 자료에서 찾을 수 없으면 ‘확인 불가’로 적으십시오. 확신도는 높음·중간·낮음으로 적으십시오.");
+  L.push("- 판정 문장을 다시 쓰거나 새 판정을 내리지 마십시오. 수정안에는 문제 된 표현이나 표시(예: ‘확인됨’ → ‘확인 필요’)만 적으십시오.");
+  L.push("- 맞는 내용은 반복하지 말고, 문제가 없으면 ‘지적 없음’이라고만 쓰십시오.");
+  L.push("- 증거 점검표의 ‘확인 필요’ 행 가운데 주어진 자료로 확인되는 것은 판정 없이 ‘행 / 해당 문구’ 표로 따로 적으십시오. 해당 문구는 주어진 자료에서 그대로 옮기십시오. 옮긴 문구가 확인하는 것(그 말이 본문·자료에 있다)과 확인하지 못하는 것(그 해석·판정이 옳다)을 나눠 적으십시오.");
+  const memo = document.getElementById('audience-memo').value.trim();
+  if (memo && document.getElementById('indep-memo').checked) L.push("[청중 메모 — ⑧ 점검용 참고이며 판정의 근거가 아닙니다]\n" + memo);
+  if (document.getElementById('indep-texts').checked) {
+    filledFields().forEach(({ f, v }, i) => L.push(`[입력 ${i + 1}: ${f.tag[currentTestament]}]\n${v}`));
+  }
+  const md = evMarkdown();
+  if (md && document.getElementById('indep-evidence').checked) L.push("[증거 점검표 — 연구자가 쓴 것]\n" + md);
+  L.push(`[검증 대상: ${label} 답변]\n(여기에 ${label} 답변을 그대로 붙여 넣으십시오)`);
+  return L.join("\n");
+}
+function renderIndep() {
+  const el = document.getElementById('indep-preview'); if (!el) return;
+  indepText = buildIndepPrompt();
+  el.innerHTML = escapeHtml(indepText).replace(/\n/g, "<br>");
+}
+function copyIndep() { renderIndep(); writeClipboard(indepText, "독립 검증 요청문 복사 완료! 다른 AI나 새 대화에 붙여 넣으십시오."); }
+function openIndep(t) {
+  setTab('verify', true);
+  const sel = document.getElementById('indep-target'); if (sel && t) sel.value = t;
+  renderIndep();
+  setTimeout(() => document.getElementById('indep-panel').scrollIntoView({ behavior: "smooth" }), 50);
+}
+function nlmQuestion() {
+  const c = (document.getElementById('nlm-crux') || {}).value || "";
+  return (c.trim() || "난제n") + "에 대한 학자 견해를 모두, 주장자·근거·약점과 출처 인용과 함께";
+}
+function renderNlm() { const el = document.getElementById('nlm-preview'); if (el) el.innerText = nlmQuestion(); }
+function copyNlmQuestion() { writeClipboard(nlmQuestion(), "NotebookLM 중립 질문 복사 완료! (9단계 판정을 쓴 뒤에만)"); }
+
+// ───────────────────────── v8.0: 하브루타 (AI가 공부 짝) ─────────────────────────
+const HAV_LEVEL = {
+  easy: "질문과 답은 쉬운 말로 짧게 하십시오. 신학 전문용어와 원어는 쓰지 말고, 꼭 필요하면 괄호 안에 쉬운 풀이를 다십시오.",
+  standard: "신학교를 졸업한 목회자 수준으로 하십시오. 핵심 용어는 쓰되 처음 나올 때 한 줄로 풀이하십시오.",
+  expert: "연구자 수준으로 원어·구문·해석사까지 다루되, 원어는 제공된 원문이나 석의 결과에 있는 것만 쓰고, 없으면 ‘(원문 확인 필요)’를 붙이십시오."
+};
+// 단계 → 하브루타 흐름(관찰 → 해석 → 정경·그리스도 → 적용)
+const HAV_STAGES = {
+  full: [
+    { k: "1", label: "1 본문 확정", phase: "관찰" }, { k: "2", label: "2 난제", phase: "해석" },
+    { k: "3", label: "3 본문 비평", phase: "관찰" }, { k: "4", label: "4 번역·어휘", phase: "관찰" },
+    { k: "5", label: "5 구조", phase: "관찰" }, { k: "6", label: "6 배경", phase: "해석" },
+    { k: "7", label: "7 상호텍스트", phase: "정경·그리스도" }, { k: "8", label: "8 구속사", phase: "정경·그리스도" },
+    { k: "9", label: "9 판정", phase: "해석" }, { k: "10", label: "10 명제·적용", phase: "적용" }
+  ],
+  short: [
+    { k: "①", label: "① 본문과 난제", phase: "관찰·해석" }, { k: "②", label: "② 어휘와 구조", phase: "관찰" },
+    { k: "③", label: "③ 구속사 연결·잠정 판정", phase: "정경·그리스도" }, { k: "④", label: "④ 명제와 적용", phase: "적용" }
+  ]
+};
+const PHASE_ORDER = ["관찰", "관찰·해석", "해석", "정경·그리스도", "적용"];
+let havBasis = null, havSel = { full: null, short: null }, havText = "", havPassage = null;
+function havKey(p) { return "exegesis-v8-hav::" + p; }
+function saveHav() {
+  const p = currentPassageRaw();
+  const data = { results: document.getElementById('hav-results').value, basis: havBasis, sel: havSel };
+  try {
+    localStorage.setItem("exegesis-v8-hav-level", document.getElementById('hav-level').value);
+    if (p) localStorage.setItem(havKey(p), JSON.stringify(data));
+  } catch (e) {}
+}
+function loadHavFor(passage) {
+  if (passage === havPassage) return;
+  havPassage = passage;
+  let d = null;
+  try { const lv = localStorage.getItem("exegesis-v8-hav-level"); if (HAV_LEVEL[lv]) document.getElementById('hav-level').value = lv; } catch (e) {}
+  try { if (passage) d = JSON.parse(localStorage.getItem(havKey(passage)) || "null"); } catch (e) {}
+  document.getElementById('hav-results').value = d && typeof d.results === 'string' ? d.results : "";
+  havBasis = d && (d.basis === 'full' || d.basis === 'short') ? d.basis : currentDepth;
+  havSel = { full: null, short: null };
+  if (d && d.sel) ['full', 'short'].forEach(b => { if (Array.isArray(d.sel[b])) havSel[b] = d.sel[b]; });
+}
+function havSelected() { return havSel[havBasis] || HAV_STAGES[havBasis].map(s => s.k); }
+function setHavBasis(b) { if (!HAV_STAGES[b]) return; havBasis = b; saveHav(); renderHav(); }
+function toggleHavStage(k) {
+  const cur = havSelected().slice(), i = cur.indexOf(k);
+  if (i >= 0) { if (cur.length > 1) cur.splice(i, 1); } else cur.push(k);
+  havSel[havBasis] = HAV_STAGES[havBasis].map(s => s.k).filter(x => cur.includes(x));
+  saveHav(); renderHav();
+}
+function pullEvidenceToHav() {
+  const md = evMarkdown();
+  if (!md) { showToast("이 본문에 저장된 증거 점검표가 없습니다"); return; }
+  const ta = document.getElementById('hav-results');
+  ta.value = (ta.value.trim() ? ta.value.trim() + "\n\n" : "") + "[증거 점검표]\n" + md;
+  saveHav(); renderHav(); showToast("증거 점검표를 붙였습니다");
+}
+function buildHavPrompt() {
+  const raw = currentPassageRaw(), passage = raw || "[해당 본문]";
+  const level = document.getElementById('hav-level').value;
+  const basisLabel = havBasis === 'short' ? "축약 4단계" : "정밀 10단계";
+  const sel = HAV_STAGES[havBasis].filter(s => havSelected().includes(s.k));
+  const order = PHASE_ORDER.filter(ph => sel.some(s => s.phase === ph));
+  const results = document.getElementById('hav-results').value.trim();
+  const nkrv = document.getElementById('text-nkrv').value.trim();
+  const L = [];
+  L.push(`[하브루타 시작 지침] 나는 ${passage}을(를) ${basisLabel}로 석의했습니다. 지금부터 당신은 나의 하브루타 공부 짝입니다. 서로 묻고 답하며 내 석의를 이어서 공부합니다. 이 메시지에는 첫 질문 하나만 하십시오.`);
+  L.push("[근거]");
+  L.push("- 모든 질문과 답은 아래 [내 석의 결과]와 [제공된 본문]에 근거하십시오. 근거로 쓴 곳(결과의 단계·난제 번호, 본문의 절)을 매번 밝히십시오.");
+  L.push("- 자료를 가리킬 때는 자료 번호보다 저자 이름이나 책 이름으로 쓰십시오.");
+  L.push("- 성경은 제공된 본문에서만 「」 안에 그대로 옮기고, 제공되지 않은 구절은 장절만 적으십시오. 출처, 쪽수, 학자 이름, 원어 형태를 기억으로 만들어 내지 마십시오. 결과에 없는 지식을 쓸 때는 ‘자료 외’로, 확인되지 않는 말은 ‘확인 필요’로 표시하십시오.");
+  L.push("[진행]");
+  L.push(`1. 질문은 한 번에 하나만 하고, 내 답을 기다리십시오. 순서는 ${order.join(" → ")}이며, 내가 한 단계(${sel.map(s => s.label).join(", ")})에서만 묻습니다.`);
+  L.push("2. 내가 답하면 동의하거나 반론하되, 어느 쪽이든 근거 절이나 결과의 해당 부분을 대십시오. 내 답에 근거 절이 없으면 먼저 근거 절을 물으십시오.");
+  L.push("3. 내가 질문하면 답하십시오. 답은 내 석의 결과와 본문에서 근거를 대고, 결과에 판단이 없거나 ‘확인 필요’·‘잠정’으로 남은 것이면 그렇다고 밝히고 단정하지 마십시오. 답한 뒤에는 다시 질문 하나로 대화를 이어 가십시오.");
+  L.push("4. 내 결과에서 근거가 약한 곳, ‘확인 필요’·‘잠정 판정’으로 남은 곳, 확인 근거 없이 ‘확인됨’으로 적힌 곳, 견해를 합치면서 전제가 맞는지 따지지 않은 곳, 본문의 약속을 명령으로 바꾼 적용이 보이면 그냥 받아들이지 말고 질문으로 꺼내십시오.");
+  L.push("5. 반대 견해가 있으면 그 지지자가 인정할 형태로 하나씩 내놓되, 판정은 내가 합니다. 내 석의 결과의 판정을 대신 고쳐 쓰지 마십시오.");
+  L.push("6. 설교문, 설교 개요, 예화, 설교 원고를 쓰지 마십시오. 요청해도 질문으로 돌려주십시오.");
+  L.push("7. " + HAV_LEVEL[level]);
+  L.push("[정리] 다섯 번 주고받을 때마다, 그리고 내가 ‘정리’라고 하면 다음 둘만 쓰십시오.");
+  L.push("① 이번에 확인된 것: ‘주장 / 근거(절 또는 결과의 위치)’ 목록 — 내가 본문 근거를 대어 확인한 것만");
+  L.push("② 아직 확인 필요: ‘| 결정적 근거 | 다룬 단계 | 확인 근거 | 확인 상태 |’ 마크다운 표. 확인 근거 칸에는 확인에 필요한 본문·자료(아직 확인하지 않음)를 적고, 확인 상태는 모두 ‘확인 필요’로 쓰십시오. 이 표는 내가 증거 점검표로 옮겨 직접 확인합니다.");
+  L.push("[내 석의 결과]\n" + (results || "(아직 붙여 넣지 않았습니다. 결과가 없으면 본문 관찰 질문부터 시작하십시오.)"));
+  if (nkrv) {
+    if (nkrv.length <= 6000) L.push("[제공된 본문 — 개역개정]\n" + nkrv);
+    else L.push("[제공된 본문 — 개역개정] 소스로 올린 ‘" + fileNameFor(TEXT_FIELDS[0], raw) + "’ 파일에서만 옮기십시오.");
+  } else L.push("[제공된 본문] 개역개정 본문이 제공되지 않았습니다. 성경 문구를 따옴표로 인용하지 말고 장절만 적으십시오.");
+  L.push("이해했으면 인사나 설명 없이 첫 질문 하나만 하십시오.");
+  return L.join("\n");
+}
+function renderHav() {
+  const el = document.getElementById('hav-preview'); if (!el) return;
+  if (!havBasis) havBasis = currentDepth;
+  ['full', 'short'].forEach(b => {
+    document.getElementById('hav-basis-' + b).className = (b === havBasis)
+      ? "px-3 py-1.5 rounded-lg bg-teal-700 text-white transition-all font-bold"
+      : "px-3 py-1.5 rounded-lg transition-all text-slate-500 hover:text-slate-800";
+  });
+  const sel = havSelected();
+  document.getElementById('hav-stages').innerHTML = HAV_STAGES[havBasis].map(s =>
+    `<button onclick="toggleHavStage('${s.k}')" class="px-2.5 py-1 rounded-lg text-xs font-bold border ${sel.includes(s.k) ? 'bg-teal-700 text-white border-teal-700' : 'bg-white text-teal-800 border-teal-200'}">${escapeHtml(s.label)}</button>`).join("");
+  const r = document.getElementById('hav-results').value.trim();
+  document.getElementById('hav-results-stat').innerText = r ? `결과 ${r.length.toLocaleString()}자` : "결과를 붙여 넣으면 그 결과에 근거해 묻고 답합니다.";
+  havText = buildHavPrompt();
+  el.innerHTML = escapeHtml(havText).replace(/\n/g, "<br>");
+}
+function copyHav() { renderHav(); writeClipboard(havText, "하브루타 시작 지침 복사 완료! 새 대화에 붙여 넣으십시오."); }
+const HAV_CMD = {
+  "정리": "정리. 지금까지 주고받은 내용으로 ① 이번에 확인된 것(주장 / 근거)과 ② 아직 확인 필요(‘| 결정적 근거 | 다룬 단계 | 확인 근거 | 확인 상태 |’ 표, 확인 근거 칸은 확인에 필요한 본문·자료(아직 확인하지 않음), 상태는 모두 ‘확인 필요’)만 쓰십시오.",
+  "근거": "방금 말한 내용의 근거를 대 주십시오. 제공된 본문의 절이나 내 석의 결과의 위치를 적고, 댈 수 없으면 그 말에 ‘확인 필요’를 붙이십시오."
+};
+function copyHavCmd(k) { writeClipboard(HAV_CMD[k], "‘" + k + "’ 요청 복사 완료!"); }
+
+// ───────────────────────── v8.0: 예시 — 마태복음 4:1-11 ─────────────────────────
+// 출처: 석의 팀 exegesis/마4_1-11 (inputs/nkrv.txt, stages/02.md 난제 표, stages/09.md 증거 점검표). 문구는 파일에서 그대로 옮겼다.
+const EXAMPLE = {
+  passage: "마태복음 4:1-11",
+  nkrv: [
+    "1 그 때에 예수께서 성령에게 이끌리어 마귀에게 시험을 받으러 광야로 가사",
+    "2 사십 일을 밤낮으로 금식하신 후에 주리신지라",
+    "3 시험하는 자가 예수께 나아와서 이르되 네가 만일 하나님의 아들이어든 명하여 이 돌들로 떡덩이가 되게 하라",
+    "4 예수께서 대답하여 이르시되 기록되었으되 사람이 떡으로만 살 것이 아니요 하나님의 입으로부터 나오는 모든 말씀으로 살 것이라 하였느니라 하시니",
+    "5 이에 마귀가 예수를 거룩한 성으로 데려다가 성전 꼭대기에 세우고",
+    "6 이르되 네가 만일 하나님의 아들이어든 뛰어내리라 기록되었으되 그가 너를 위하여 그의 사자들을 명하시리니 그들이 손으로 너를 받들어 발이 돌에 부딪치지 않게 하리로다 하였느니라",
+    "7 예수께서 이르시되 또 기록되었으되 주 너의 하나님을 시험하지 말라 하였느니라 하시니",
+    "8 마귀가 또 그를 데리고 지극히 높은 산으로 가서 천하 만국과 그 영광을 보여",
+    "9 이르되 만일 내게 엎드려 경배하면 이 모든 것을 네게 주리라",
+    "10 이에 예수께서 말씀하시되 사탄아 물러가라 기록되었으되 주 너의 하나님께 경배하고 다만 그를 섬기라 하였느니라",
+    "11 이에 마귀는 예수를 떠나고 천사들이 나아와서 수종드니라"
+  ].join("\n"),
+  // 헬라어 본문: SBLGNT(Society of Biblical Literature · Logos, CC BY 4.0) github.com/LogosBible/SBLGNT data/sblgnt/text/Matt.txt 마 4:1-11 — 판본 기호(⸀⸂⸃)만 빼고 그대로 옮김
+  orig: [
+    "1 Τότε ὁ Ἰησοῦς ἀνήχθη εἰς τὴν ἔρημον ὑπὸ τοῦ πνεύματος, πειρασθῆναι ὑπὸ τοῦ διαβόλου.",
+    "2 καὶ νηστεύσας ἡμέρας τεσσεράκοντα καὶ νύκτας τεσσεράκοντα ὕστερον ἐπείνασεν.",
+    "3 καὶ προσελθὼν ὁ πειράζων εἶπεν αὐτῷ· Εἰ υἱὸς εἶ τοῦ θεοῦ, εἰπὲ ἵνα οἱ λίθοι οὗτοι ἄρτοι γένωνται.",
+    "4 ὁ δὲ ἀποκριθεὶς εἶπεν· Γέγραπται· Οὐκ ἐπʼ ἄρτῳ μόνῳ ζήσεται ὁ ἄνθρωπος, ἀλλʼ ἐπὶ παντὶ ῥήματι ἐκπορευομένῳ διὰ στόματος θεοῦ.",
+    "5 Τότε παραλαμβάνει αὐτὸν ὁ διάβολος εἰς τὴν ἁγίαν πόλιν, καὶ ἔστησεν αὐτὸν ἐπὶ τὸ πτερύγιον τοῦ ἱεροῦ,",
+    "6 καὶ λέγει αὐτῷ· Εἰ υἱὸς εἶ τοῦ θεοῦ, βάλε σεαυτὸν κάτω· γέγραπται γὰρ ὅτι Τοῖς ἀγγέλοις αὐτοῦ ἐντελεῖται περὶ σοῦ καὶ ἐπὶ χειρῶν ἀροῦσίν σε, μήποτε προσκόψῃς πρὸς λίθον τὸν πόδα σου.",
+    "7 ἔφη αὐτῷ ὁ Ἰησοῦς· Πάλιν γέγραπται· Οὐκ ἐκπειράσεις κύριον τὸν θεόν σου.",
+    "8 Πάλιν παραλαμβάνει αὐτὸν ὁ διάβολος εἰς ὄρος ὑψηλὸν λίαν, καὶ δείκνυσιν αὐτῷ πάσας τὰς βασιλείας τοῦ κόσμου καὶ τὴν δόξαν αὐτῶν",
+    "9 καὶ εἶπεν αὐτῷ· Ταῦτά σοι πάντα δώσω, ἐὰν πεσὼν προσκυνήσῃς μοι.",
+    "10 τότε λέγει αὐτῷ ὁ Ἰησοῦς· Ὕπαγε, Σατανᾶ· γέγραπται γάρ· Κύριον τὸν θεόν σου προσκυνήσεις καὶ αὐτῷ μόνῳ λατρεύσεις.",
+    "11 τότε ἀφίησιν αὐτὸν ὁ διάβολος, καὶ ἰδοὺ ἄγγελοι προσῆλθον καὶ διηκόνουν αὐτῷ."
+  ].join("\n"),
+  // 석의 팀 stages/09.md 판정·인계 요약과 stages/10.md 석의 명제에서 발췌 — 표기만 바꿈(자료 번호 → 저자·책 이름, 팀 내부 표기·날짜·좌석 이름 삭제)
+  results: "[예시 — 석의 팀 마 4:1–11 결과 일부(9단계 판정·10단계 명제). 내용은 팀 파일과 같고, 자료 번호를 저자·책 이름으로 바꾸고 팀 내부 표기를 푸는 등 표기만 바꿈.]\n## 9단계 판정 (일부)\n- **난제1 (③ 확정 · 주안점 잠정)** 1절 두 ὑπὸ(성령·마귀), ①측 France(Tyndale)·②측 Morris가 서로의 전제를 인정(증거 점검표) → 양립. 주안을 하나님의 시험(①, France(Tyndale)·France(NICNT))에 둘지는 신 8:2 본문이 제공 자료 밖이라 → 잠정.\n- **난제3 ((나)② 확정 · (가) 잠정)** 3:17 바로 뒤 같은 칭호, 9절에서 조건문이 빠짐 → 마귀는 아들 됨을 부정하기보다 쓰임을 바꾸게 함(Carson(EBC)·Keener·Morris, 2단계 난제 표). (가) 이니까('might well' Hagner·'may be more likely' Keener)와 약간의 의심('suggests a little doubt' Morris)은 Morris 각주가 2차로 인용한 문법 연구(Boyer)로도 가를 수 없음 → 잠정.\n- **난제5 ((나) 확정 · (가)② 잠정 · (다)② 잠정)** 약속 자체는 다투지 않고('not because he disputes the validity' France(NICNT)) 하나님을 시험하는 쓰임을 막으심 → 잘못은 쓰임. 생략은 예수 답이 문제 삼지 않음(JFB) → 뜻 영향 없음('probably no significance' Hagner) 잠정. 시 91 = 신실한 이 → 하물며 아들('More likely' Hagner) / 메시아 시편('may presuppose') 잠정. 정반대 적용(Sproul(Reformation SB))은 시 91 본문이 자료 밖이라 확인 필요.\n- **난제7 (③ 잠정: 이스라엘 대표 + 원리상 본보기 · 우리 위한 대리·아담 잠정)** 재점검에서 잠정으로 낮춤: 대표 → 본보기 순서는 유지하되 신 8:3·6–8 본문이 입력되지 않음. ὁ ἄνθρωπος = 옛 이스라엘 가능성(Carson(EBC), 증거 점검표) 병기. 전제: ①(아들만 설 수 있던 자리)과 ②(누구나 가진 수단)는 ②가 같은 시험·같은 능력을 말할 때만 충돌. ②측은 범위를 줄이고('will not be the same … in principle be similar' Hagner, 'resources open to each of his followers' Morris), ①측도 본보기를 함께 말함(Keener 'shown us how to overcome', Beeke 외(Reformation Heritage SB) 'our weapon', Sproul(Reformation SB) 'If we overcome', NIV BST Notes) → 양립. 이스라엘 대표는 잠정(Hagner 'More likely'). 우리 위한 대리: 지지 Keener·Crossway(ESV Systematic Theology SB)·Carson(NIV Biblical Theology SB)·Thielman(Gospel Transformation Bible)·Beeke 외·Sproul·Evans SB(2단계 난제 표) / 본문에 ‘대신’ 어휘 없음·히브리서 본문이 자료 밖 → 잠정. 아담: 창 3 본문이 자료 밖이고 Carson(EBC)은 아담 대조를 누가복음 쪽으로 봄 → 잠정. ④ 'not presented as a model'(France(NICNT))은 금식에 한정됨(②의 한계).\n## 9단계 인계 요약 (일부)\n- 확정: 난제1 ③, 난제2 (나)① 40일 뒤, 난제3 (나)② 쓰임 바꾸기, 난제5 (나) 쓰임의 잘못, 난제6 (라)① 신적 예배. 기각: 난제4 공개 과시 일차설.\n## 10단계 명제\n- **석의 명제**: 마태는 하나님께 사랑하는 아들로 선언되신 예수께서 성령에게 이끌려 광야에서 마귀에게 시험받으실 때(하나님의 시험이자 마귀의 유혹), 사십 일 금식 뒤 주리신 몸으로 아들 됨을 다르게 쓰라는 세 제안을 「기록되었으되」 하나님의 말씀으로 물리치시고, 마지막에 엎드려 경배하라는 요구를 하나님께만 경배한다는 말씀으로 거절하시자(10절) 마귀가 떠나고 천사들이 수종들었음을 독자에게 전한다(확정 판정만 — 이스라엘 자리·대표는 재점검에서 잠정으로 낮춰 뺌).",
+  // 석의 팀 9단계 증거 점검표에서 네 행 — 표기만 바꿈(자료 번호 → 저자 이름, 파일 이름 → 원문)
+  evidence: [
+    { g: "양쪽의 인정", s: "2", e: "'no doubt, to persuade Jesus to do wrong' — France(Tyndale) / 'But it was also a temptation.' — Morris", st: "확인됨(나)" },
+    { g: "9 ↔ 10 경배, 10 ↔ 16:23", s: "4·5·7", e: "προσκυνήσῃς(9) / προσκυνήσεις … μόνῳ λατρεύσεις(10) — 원문(마 4:9·10); ὕπαγε ὀπίσω μου, σατανᾶ — 관련 구절 원문(마 16:23)", st: "확인됨(가)" },
+    { g: "εἰ 1급 = '이니까'", s: "4", e: "'in about half of them the condition is undetermined' — Morris 각주 11(Boyer 2차 인용)", st: "확인 필요" },
+    { g: "신 6–8·8:3 원래 문맥(난제4·7)", s: "4·7·재점검", e: "제공 자료 밖 — ὁ ἄνθρωπος는 마태의 인용문(원문)에서만", st: "확인 필요" }
+  ]
+};
+function loadExample() {
+  const inp = document.getElementById('passage-input');
+  inp.value = EXAMPLE.passage;
+  setMode('auto');                                   // updateAll(): 이 본문에 저장된 값을 먼저 불러온다
+  const nk = document.getElementById('text-nkrv');
+  if (!nk.value.trim() || nk.value.trim() === EXAMPLE.nkrv) { nk.value = EXAMPLE.nkrv; saveField('nkrv'); }
+  else if (confirm("이 본문에 저장된 개역개정이 예시와 다릅니다. 예시 본문으로 바꿀까요?")) { nk.value = EXAMPLE.nkrv; saveField('nkrv'); }
+  const og = document.getElementById('text-orig');
+  if (!og.value.trim() || og.value.trim() === EXAMPLE.orig) { og.value = EXAMPLE.orig; saveField('orig'); }
+  else if (confirm("이 본문에 저장된 헬라어 원문이 예시와 다릅니다. 예시 원문(SBLGNT)으로 바꿀까요?")) { og.value = EXAMPLE.orig; saveField('orig'); }
+  if (!evRows.length) { evRows = EXAMPLE.evidence.map(r => Object.assign({ ai: false }, r)); renderEvidence(); }
+  const hr = document.getElementById('hav-results');
+  if (!hr.value.trim() || hr.value === EXAMPLE.results || confirm("이 본문의 하브루타 결과 칸을 예시 결과로 바꿀까요?")) hr.value = EXAMPLE.results;
+  havBasis = 'full';                                 // 팀 예시는 정밀 10단계 결과
+  saveHav();
+  updateAll();
+  showToast("예시: 마태복음 4:1-11 — 본문(개역개정·헬라어 원문 SBLGNT)·증거 점검표·하브루타 결과 예시를 채웠습니다");
+}
+function renderV8() {
+  const raw = currentPassageRaw();
+  loadEvidenceFor(raw);
+  loadHavFor(raw);
+  loadFirsts();
+  renderStopList();
+  renderIndep(); renderNlm(); renderHav();
+}
+
 buildTextFields();
 setMode('auto');
+setTab(currentTab, true);
 </script>
 </body>
 </html>
